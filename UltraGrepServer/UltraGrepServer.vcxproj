@@ -21,6 +21,9 @@
   <ItemGroup>
     <ClCompile Include="server_main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="WinSockets.hpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{C424D402-8424-4F33-A64A-4D79D6698D62}</ProjectGuid>
