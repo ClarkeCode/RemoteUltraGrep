@@ -37,7 +37,7 @@ namespace networking {
 	//=================================
 	class WinSocket {
 	protected:
-		using byte_t = byte;
+		using byte_t = char;
 		SOCKET _socket;
 		int _family;
 
@@ -105,7 +105,7 @@ namespace networking {
 
 	public:
 		template<typename T>
-		int sendInfo(T& item) {
+		int sendInfo(T const& item) {
 			return send(_socket, (byte_t*)&item, sizeof(item), 0);
 		}
 
@@ -137,8 +137,8 @@ namespace networking {
 		}
 
 		//Alternate constructor for the WaitForConnection in the TCPServerSocket
-		TCPClientSocket(std::string const& ipAddress, unsigned short portNumber, 
-			NetworkFamily inetProtocol = NetworkFamily::IPv4, SOCKET socket = SOCKET_ERROR) :
+		TCPClientSocket(SOCKET socket = SOCKET_ERROR, std::string const& ipAddress = "127.0.0.1", 
+			unsigned short portNumber = 99999, NetworkFamily inetProtocol = NetworkFamily::IPv4) :
 			TCPSocket(ipAddress, portNumber, inetProtocol) {
 			_socket = socket;
 		}
@@ -159,7 +159,7 @@ namespace networking {
 			SOCKET acceptedSocketHandle = SOCKET_ERROR;
 			while (acceptedSocketHandle == SOCKET_ERROR)
 				acceptedSocketHandle = accept(_socket, NULL, NULL);
-			return TCPClientSocket(_ipAddrString, _portNum, _chosenProtocol, acceptedSocketHandle);
+			return TCPClientSocket(acceptedSocketHandle, _ipAddrString, _portNum, _chosenProtocol);
 		}
 
 	private:
