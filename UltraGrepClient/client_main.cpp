@@ -6,23 +6,24 @@ using namespace std;
 #include <map>
 #include <algorithm>
 
-void possibleCommands(map<char, string>& commands, string& userInput) {
+void possibleCommands(ostream& os, map<char, string>& commands, string& userInput, size_t rightSideOffset = 0) {
 	map<char, string>::const_iterator it = commands.find(userInput[0]);
 	if (it == commands.end())
-		cout << "Not a command" << endl;
+		os << "Not a command" << endl;
 	else {
 		string testCommand = commands[userInput[0]];
 		pair<string::iterator, string::iterator> pair = mismatch(testCommand.begin(), testCommand.end(), userInput.begin(), userInput.end());
 
 		if (pair.first != testCommand.end()) {
-			cout << string(pair.second - userInput.begin(), ' ') << "^" << endl;
-			cout << string(pair.second - userInput.begin(), ' ') << "Mispelled command! Did you mean: '" << testCommand << "'?" << endl;
+			string spacing(pair.second - userInput.begin() + rightSideOffset, ' ');
+			os << spacing << "^" << endl;
+			os << spacing << "Mispelled command! Did you mean: '" << testCommand << "'?" << endl;
 		}
 		else {
-			cout << "Good command" << endl;
+			os << "Good command" << endl;
 		}
 	}
-	cout << endl;
+	os << endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -39,8 +40,10 @@ int main(int argc, char* argv[]) {
 
 	string line;
 	while (true) {
+		string cursor = "ugrepclient> ";
+		cout << cursor;
 		getline(cin, line);
-		possibleCommands(commands, line);
+		possibleCommands(cout, commands, line, cursor.size());
 	}
 
 	{
