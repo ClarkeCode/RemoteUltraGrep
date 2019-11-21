@@ -30,3 +30,18 @@
 *.exe
 *.out
 *.app
+
+# Visual Studio Generated Folders
+.vs/
+
+Debug/
+Release/
+x64/
+
+UltraGrepClient/Debug/
+UltraGrepClient/Release/
+UltraGrepClient/x64/
+
+UltraGrepServer/Debug/
+UltraGrepServer/Release/
+UltraGrepServer/x64/
