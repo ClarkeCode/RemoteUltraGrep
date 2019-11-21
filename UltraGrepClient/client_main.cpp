@@ -6,7 +6,7 @@ using namespace std;
 #include <map>
 #include <algorithm>
 
-void possibleCommands(ostream& os, map<char, string>& commands, string& userInput, size_t rightSideOffset = 0) {
+void possibleCommands(ostream& os, map<char, string>& commands, string& userInput, size_t leftSideOffset = 0) {
 	map<char, string>::const_iterator it = commands.find(userInput[0]);
 	if (it == commands.end())
 		os << "Not a command" << endl;
@@ -15,7 +15,7 @@ void possibleCommands(ostream& os, map<char, string>& commands, string& userInpu
 		pair<string::iterator, string::iterator> pair = mismatch(testCommand.begin(), testCommand.end(), userInput.begin(), userInput.end());
 
 		if (pair.first != testCommand.end()) {
-			string spacing(pair.second - userInput.begin() + rightSideOffset, ' ');
+			string spacing(pair.second - userInput.begin() + leftSideOffset, ' ');
 			os << spacing << "^" << endl;
 			os << spacing << "Mispelled command! Did you mean: '" << testCommand << "'?" << endl;
 		}
