@@ -39,22 +39,24 @@ int main(int argc, char* argv[]) {
 	};
 
 	string line;
-	while (true) {
+	while (false) {
 		string cursor = "ugrepclient> ";
 		cout << cursor;
 		getline(cin, line);
 		possibleCommands(cout, commands, line, cursor.size());
 	}
 
-	{
+	try {
 		networking::WindowsSocketActivation wsa;
 		networking::TCPClientSocket client("127.0.0.1", 55444);
 
-		client.sendInfo<unsigned short>(8989);
-		client.sendInfo<string>("Gimme something from client");
+		unsigned short aa = 8989;
+		string bb = "Gim";// me something from client";
+		client.sendInfo<unsigned short>(aa);
+		client.sendInfo<string>(bb);
 
 		unsigned short xx;
-		string yy;
+		string yy("                                        ");
 		client.receiveInfo<unsigned short>(xx);
 		client.receiveInfo<string>(yy);
 		cout << xx << endl << yy << endl;
@@ -62,5 +64,8 @@ int main(int argc, char* argv[]) {
 		char ch;
 		cin >> ch;
 
+	}
+	catch (networking::SocketException & ex) {
+		cout << ex.what() << endl;
 	}
 }

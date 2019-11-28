@@ -109,9 +109,31 @@ namespace networking {
 			return send(_socket, (byte_t*)&item, sizeof(item), 0);
 		}
 
+		template<>
+		int sendInfo<std::string>(std::string const& item) {
+			char* buff = new char[item.size() + 1];
+			strcpy_s(buff, item.size() + 1, item.c_str());
+
+			unsigned short holder = (unsigned short)strlen(buff); //can be unified with line below
+			this->sendInfo<unsigned short>(holder);
+			//char x = buff[item.size()];
+			int bytesSent = send(_socket, buff, (int)strlen(buff), 0); //sends char arr without the terminating 0
+			delete[] buff;
+			return bytesSent;
+		}
+
 		template<typename T>
 		int receiveInfo(T& item) {
 			return recv(_socket, (byte_t*)&item, sizeof(item), 0);
+		}
+
+		template<>
+		int receiveInfo<std::string>(std::string& item) {
+			char* buff = new char[item.size() + 1];
+			int bytesRecv = recv(_socket, (byte_t*)&buff, sizeof(buff), 0);
+			item = buff;
+			delete[] buff;
+			return bytesRecv;
 		}
 	};
 

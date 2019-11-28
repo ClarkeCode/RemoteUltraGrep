@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
 
 		{
 			unsigned short xx;
-			string yy;
+			string yy("                                              ");
 
 			clientSock.receiveInfo<unsigned short>(xx);
 			clientSock.receiveInfo<string>(yy);
