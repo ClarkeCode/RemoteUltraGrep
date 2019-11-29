@@ -50,18 +50,29 @@ int main(int argc, char* argv[]) {
 		networking::WindowsSocketActivation wsa;
 		networking::TCPClientSocket client("127.0.0.1", 55444);
 
-		unsigned short aa = 8989;
+		string comm;
+		do {
+			cout << ">";
+			cin >> comm;
+			client.sendInfo<string>(comm);
+			cout << "Sent '" << comm << "' to the server\n\n";
+		} while (comm != "quit");
+		return EXIT_SUCCESS;
+
+
+		//unsigned short aa = 8989;
 		string bb = "Gim";// me something from client";
-		client.sendInfo<unsigned short>(aa);
+		//client.sendInfo<unsigned short>(aa);
 		client.sendInfo<string>(bb);
 
-		unsigned short xx;
+		//unsigned short xx;
 		string yy("                                        ");
-		client.receiveInfo<unsigned short>(xx);
+		//client.receiveInfo<unsigned short>(xx);
 		client.receiveInfo<string>(yy);
-		cout << xx << endl << yy << endl;
+		cout << endl << yy << endl;
 
 		char ch;
+		cout << ">";
 		cin >> ch;
 
 	}

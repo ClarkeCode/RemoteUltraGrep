@@ -111,14 +111,18 @@ namespace networking {
 
 		template<>
 		int sendInfo<std::string>(std::string const& item) {
-			char* buff = new char[item.size() + 1];
-			strcpy_s(buff, item.size() + 1, item.c_str());
+			unsigned short holder = (unsigned short)item.size(); //can be unified with line below
+			sendInfo<unsigned short>(holder);
 
-			unsigned short holder = (unsigned short)strlen(buff); //can be unified with line below
-			this->sendInfo<unsigned short>(holder);
 			//char x = buff[item.size()];
-			int bytesSent = send(_socket, buff, (int)strlen(buff), 0); //sends char arr without the terminating 0
-			delete[] buff;
+			//int bytesSent = send(_socket, buff, (int)strlen(buff), 0); //sends char arr with the terminating 0
+			//delete[] buff;
+
+			int bytesSent = 0;
+			for (char const& ch : item) {
+				bytesSent += sendInfo<char>(ch);
+			}
+
 			return bytesSent;
 		}
 
@@ -129,10 +133,26 @@ namespace networking {
 
 		template<>
 		int receiveInfo<std::string>(std::string& item) {
-			char* buff = new char[item.size() + 1];
-			int bytesRecv = recv(_socket, (byte_t*)&buff, sizeof(buff), 0);
-			item = buff;
-			delete[] buff;
+			unsigned short handshake;
+			int hsCheck = receiveInfo<unsigned short>(handshake);
+			if (hsCheck != 2)
+				throw SocketException("Failed to properly register character transfer");
+
+			//char* buff = new char[(int)handshake + 1];
+			//buff[handshake] = '\0';
+			//size_t d = strlen(buff);
+
+			//int bytesRecv = recv(_socket, (byte_t*)&buff, handshake, 0);//sizeof(buff), 0);
+			//item = buff;
+			//delete[] buff;
+			string ss;
+			int bytesRecv = 0;
+			char ch;
+			for (unsigned short x = 0; x < handshake; ++x) {
+				bytesRecv += receiveInfo<char>(ch);
+				ss += ch;
+			}
+			item = ss;
 			return bytesRecv;
 		}
 	};
