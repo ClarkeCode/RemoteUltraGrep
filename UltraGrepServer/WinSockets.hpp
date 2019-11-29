@@ -135,7 +135,7 @@ namespace networking {
 			if (hsCheck != 2)
 				throw SocketException("Failed to properly register character transfer");
 
-			string ss;
+			std::string ss;
 			int bytesRecv = 0;
 			char ch;
 			for (unsigned short x = 0; x < handshake; ++x) {
