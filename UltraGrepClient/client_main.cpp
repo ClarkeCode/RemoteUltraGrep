@@ -26,8 +26,21 @@ void possibleCommands(ostream& os, map<char, string>& commands, string& userInpu
 	os << endl;
 }
 
+#include <regex>
+string generateCursor(string const& ipAddr) { 
+	if (ipAddr != "")
+		return "ugrepclient [" + ipAddr + "]> ";
+	return "ugrepclient> "; }
+
 int main(int argc, char* argv[]) {
+	string clientIp = "127.0.0.1";
+	if (argc > 1) {
+		if (regex_match(argv[1], regex(R"ipv4format((?:\d{1,3}\.){3}\d{1,3})ipv4format"))) {
+			clientIp = argv[1];
+		}
+	}
 	cout << "Working" << endl;
+	cout << generateCursor(clientIp) << endl;
 
 	map<char, string> commands{
 		{'g', "grep"},
@@ -39,11 +52,10 @@ int main(int argc, char* argv[]) {
 	};
 
 	string line;
-	while (false) {
-		string cursor = "ugrepclient> ";
-		cout << cursor;
+	while (true) {
+		cout << generateCursor(clientIp);
 		getline(cin, line);
-		possibleCommands(cout, commands, line, cursor.size());
+		possibleCommands(cout, commands, line, generateCursor(clientIp).size());
 	}
 
 	try {
