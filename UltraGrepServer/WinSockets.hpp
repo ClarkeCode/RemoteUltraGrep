@@ -65,6 +65,8 @@ namespace networking {
 		virtual void _registerIpAddress(std::string const& ipAddress, unsigned short portNumber) = 0;
 
 	public:
+		std::string getIpAddressString() const { return _ipAddrString; }
+
 		//Send/Receive info return the count of bytes received/sent
 		template<typename T>
 		int sendInfo(T& item) = delete;
