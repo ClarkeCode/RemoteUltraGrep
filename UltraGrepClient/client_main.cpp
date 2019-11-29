@@ -26,8 +26,19 @@ void possibleCommands(ostream& os, map<char, string>& commands, string& userInpu
 	os << endl;
 }
 
+#include <regex>
+string generateCursor(string const& ipAddr) { 
+	if (ipAddr != "")
+		return "ugrepclient [" + ipAddr + "]> ";
+	return "ugrepclient> "; }
+
 int main(int argc, char* argv[]) {
-	cout << "Working" << endl;
+	string clientIp = "127.0.0.1";
+	if (argc > 1) {
+		if (regex_match(argv[1], regex(R"ipv4format((?:\d{1,3}\.){3}\d{1,3})ipv4format"))) {
+			clientIp = argv[1];
+		}
+	}
 
 	map<char, string> commands{
 		{'g', "grep"},
@@ -38,25 +49,21 @@ int main(int argc, char* argv[]) {
 		//kill - exit the client
 	};
 
-	string line;
-	while (false) {
-		string cursor = "ugrepclient> ";
-		cout << cursor;
-		getline(cin, line);
-		possibleCommands(cout, commands, line, cursor.size());
-	}
+	bool applicationFinished = false;
 
+	cout << "Attempting server connection at " << clientIp << endl;
 	try {
 		networking::WindowsSocketActivation wsa;
-		networking::TCPClientSocket client("127.0.0.1", 55444);
+		networking::TCPClientSocket* client = &networking::TCPClientSocket(clientIp, 55444);
+		cout << "Successfully connected at " << clientIp << "\n\n";
 
-		string comm;
+		string line;
 		do {
-			cout << ">";
-			cin >> comm;
-			client.sendInfo<string>(comm);
-			cout << "Sent '" << comm << "' to the server\n\n";
-		} while (comm != "quit");
+			cout << generateCursor(clientIp);
+			getline(cin, line);
+			possibleCommands(cout, commands, line, generateCursor(clientIp).size());
+		} while (!applicationFinished);
+
 		return EXIT_SUCCESS;
 	}
 	catch (networking::SocketException & ex) {
