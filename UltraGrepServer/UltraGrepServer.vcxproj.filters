@@ -23,5 +23,8 @@
     <ClInclude Include="WinSockets.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RemoteCommands.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
