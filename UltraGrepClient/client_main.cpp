@@ -39,8 +39,6 @@ int main(int argc, char* argv[]) {
 			clientIp = argv[1];
 		}
 	}
-	cout << "Working" << endl;
-	cout << generateCursor(clientIp) << endl;
 
 	map<char, string> commands{
 		{'g', "grep"},
@@ -51,24 +49,21 @@ int main(int argc, char* argv[]) {
 		//kill - exit the client
 	};
 
-	string line;
-	while (true) {
-		cout << generateCursor(clientIp);
-		getline(cin, line);
-		possibleCommands(cout, commands, line, generateCursor(clientIp).size());
-	}
+	bool applicationFinished = false;
 
+	cout << "Attempting server connection at " << clientIp << endl;
 	try {
 		networking::WindowsSocketActivation wsa;
-		networking::TCPClientSocket client("127.0.0.1", 55444);
+		networking::TCPClientSocket* client = &networking::TCPClientSocket(clientIp, 55444);
+		cout << "Successfully connected at " << clientIp << "\n\n";
 
-		string comm;
+		string line;
 		do {
-			cout << ">";
-			cin >> comm;
-			client.sendInfo<string>(comm);
-			cout << "Sent '" << comm << "' to the server\n\n";
-		} while (comm != "quit");
+			cout << generateCursor(clientIp);
+			getline(cin, line);
+			possibleCommands(cout, commands, line, generateCursor(clientIp).size());
+		} while (!applicationFinished);
+
 		return EXIT_SUCCESS;
 	}
 	catch (networking::SocketException & ex) {
