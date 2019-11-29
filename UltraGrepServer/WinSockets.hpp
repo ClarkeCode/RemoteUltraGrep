@@ -114,15 +114,10 @@ namespace networking {
 			unsigned short holder = (unsigned short)item.size(); //can be unified with line below
 			sendInfo<unsigned short>(holder);
 
-			//char x = buff[item.size()];
-			//int bytesSent = send(_socket, buff, (int)strlen(buff), 0); //sends char arr with the terminating 0
-			//delete[] buff;
-
 			int bytesSent = 0;
 			for (char const& ch : item) {
 				bytesSent += sendInfo<char>(ch);
 			}
-
 			return bytesSent;
 		}
 
@@ -138,13 +133,6 @@ namespace networking {
 			if (hsCheck != 2)
 				throw SocketException("Failed to properly register character transfer");
 
-			//char* buff = new char[(int)handshake + 1];
-			//buff[handshake] = '\0';
-			//size_t d = strlen(buff);
-
-			//int bytesRecv = recv(_socket, (byte_t*)&buff, handshake, 0);//sizeof(buff), 0);
-			//item = buff;
-			//delete[] buff;
 			string ss;
 			int bytesRecv = 0;
 			char ch;
@@ -180,7 +168,7 @@ namespace networking {
 
 		//Alternate constructor for the WaitForConnection in the TCPServerSocket
 		TCPClientSocket(SOCKET socket = SOCKET_ERROR, std::string const& ipAddress = "127.0.0.1", 
-			unsigned short portNumber = 99999, NetworkFamily inetProtocol = NetworkFamily::IPv4) :
+			unsigned short portNumber = -1, NetworkFamily inetProtocol = NetworkFamily::IPv4) :
 			TCPSocket(ipAddress, portNumber, inetProtocol) {
 			_socket = socket;
 		}
