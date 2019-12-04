@@ -8,7 +8,8 @@ namespace remote {
 		DROP,
 		CONNECT,
 		STOPSERVER,
-		GREP
+		GREP,
+		ACKNOWLEDGEMENT
 	};
 
 	struct RemoteCommand {
@@ -32,11 +33,17 @@ namespace remote {
 		//	virtual 
 	};
 
+
+	struct AcknowledgementCommand : public RemoteCommand {
+		AcknowledgementCommand() : RemoteCommand(CommandEnum::ACKNOWLEDGEMENT) {}
+		AcknowledgementCommand(networking::TCPSocket& socket) : RemoteCommand(CommandEnum::ACKNOWLEDGEMENT) {}
+	protected:
+		virtual inline void _sendTo(networking::TCPSocket& socket) override {};
+	};
+
 	struct DropCommand : public RemoteCommand {
-		//DropCommand() : RemoteCommand(CommandEnum::DROP) {}
-		DropCommand(networking::TCPSocket& socket) : RemoteCommand(CommandEnum::DROP) {
-			
-		}
+		DropCommand() : RemoteCommand(CommandEnum::DROP) {}
+		DropCommand(networking::TCPSocket& socket) : RemoteCommand(CommandEnum::DROP) {}
 	protected:
 		virtual inline void _sendTo(networking::TCPSocket& socket) override {};
 	};
@@ -46,7 +53,6 @@ namespace remote {
 		ConnectCommand(std::string whereTo) : RemoteCommand(CommandEnum::CONNECT), connectIp(whereTo) {};
 		ConnectCommand(networking::TCPSocket& socket) : RemoteCommand(CommandEnum::CONNECT) {
 			socket.receiveInfo<std::string>(connectIp);
-			//socket.sendInfo<bool>(true); //send acknowledgement
 		}
 	protected:
 		virtual void _sendTo(networking::TCPSocket& socket) override {
@@ -54,16 +60,43 @@ namespace remote {
 		};
 	};
 
-	struct RGrepCommandFactory {
+	struct StopServerCommand : public RemoteCommand {
+		StopServerCommand() : RemoteCommand(CommandEnum::STOPSERVER) {}
+		StopServerCommand(networking::TCPSocket& socket) : RemoteCommand(CommandEnum::STOPSERVER) {}
+	protected:
+		virtual inline void _sendTo(networking::TCPSocket& socket) override {};
+	};
+
+	struct GrepCommand : public RemoteCommand {
+		std::string grepCommandString;
+		GrepCommand(std::string inputString) : RemoteCommand(CommandEnum::GREP), grepCommandString(inputString) {}
+		GrepCommand(networking::TCPSocket& socket) : RemoteCommand(CommandEnum::GREP) {
+			socket.receiveInfo<std::string>(grepCommandString);
+		}
+	protected:
+		virtual inline void _sendTo(networking::TCPSocket& socket) override {
+			socket.sendInfo<std::string>(grepCommandString);
+		};
+	};
+
+
+
+	struct RGrepCommandFactory { //return shared pointers to instances by the examples maps[]
 		static RemoteCommand* generateCommand(networking::TCPSocket& socket) {
 			CommandEnum commSignal;
 			socket.receiveInfo<CommandEnum>(commSignal);
 
 			switch (commSignal) {
+			case CommandEnum::ACKNOWLEDGEMENT:
+				return &AcknowledgementCommand(socket);
 			case CommandEnum::DROP:
 				return &DropCommand(socket);
 			case CommandEnum::CONNECT:
 				return &ConnectCommand(socket);
+			case CommandEnum::STOPSERVER:
+				return &StopServerCommand(socket);
+			case CommandEnum::GREP:
+				return &GrepCommand(socket);
 			}
 		}
 	};
