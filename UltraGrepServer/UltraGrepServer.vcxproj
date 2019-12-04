@@ -22,6 +22,7 @@
     <ClCompile Include="server_main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="RemoteCommands.hpp" />
     <ClInclude Include="WinSockets.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
