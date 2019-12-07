@@ -15,7 +15,7 @@
 
 struct UltraGrepService {
 	using StringQueue = std::queue<std::string>;
-	static bool runUltraGrep(StringQueue arguments, std::ostream& os) {
+	static bool runUltraGrep(StringQueue& arguments, std::mutex* p_mxOutput, StringQueue& output) {
 		using namespace std;
 		using namespace filesystem;
 
@@ -27,17 +27,17 @@ struct UltraGrepService {
 			return false;
 
 
-		mutex mxConsoleOutput;
+		//mutex mxConsoleOutput;
 		mutex mxTotalReport;
 		vector<FileGrepReport> totalReport;
 
 		//Application specific function pointer to be given to the threadpool
 		function<void(path)> longLambda = [&](path p) -> void {
 			if (isVerbose) {
-				lock_guard<mutex> lk(mxConsoleOutput);
-				cout << "Grepping: " << p << endl;
+				lock_guard<mutex> lk(*p_mxOutput);
+				output.push("Grepping: " + p.string() + '\n');
 			}
-			FileGrepReport fgr = generateFGR(p, regexString, isVerbose, &mxConsoleOutput);
+			FileGrepReport fgr = generateFGR(p, regexString, isVerbose, p_mxOutput, output);
 			if (!fgr.empty()) {
 				lock_guard<mutex> lk(mxTotalReport);
 				totalReport.push_back(fgr);
@@ -49,8 +49,8 @@ struct UltraGrepService {
 		try {
 			for (directory_entry const& dirEntry : recursive_directory_iterator(targetFolder)) {
 				if (dirEntry.is_directory() && isVerbose) {
-					lock_guard<mutex> lk(mxConsoleOutput);
-					cout << "Scanning: " << dirEntry.path() << endl;
+					lock_guard<mutex> lk(*p_mxOutput);
+					output.push("Scanning: " + dirEntry.path().string() + '\n');
 				}
 				if (regex_match(dirEntry.path().extension().string(), interestedFileExtensions)) {
 					threadPool.enqueue(dirEntry.path());
@@ -58,14 +58,14 @@ struct UltraGrepService {
 			}
 		}
 		catch (filesystem_error err) {
-			cout << "Encountered a filesystem error:\n\t" << err.what() << endl;
+			output.push("Encountered a filesystem error:\n\t" + string(err.what()) + '\n');
 		}
 
 		threadPool.wrapup();
 		searchTimer.stop();
 
-		cout << endl;
-		printGrepReport(totalReport, searchTimer);
+		output.push("\n");
+		printGrepReport(totalReport, searchTimer, p_mxOutput, output);
 
 		return true;
 	}
