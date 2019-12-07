@@ -24,7 +24,7 @@ struct FileGrepReport {
 };
 
 inline FileGrepReport generateFGR(std::filesystem::path const& targetPath, std::regex const& phrase, 
-	bool const& isVerbose, std::mutex* p_mxOutput, FileGrepReport::StringQueue output) {
+	bool const& isVerbose, std::mutex* p_mxOutput, FileGrepReport::StringQueue& output) {
 	using namespace std;
 	using namespace filesystem;
 	FileGrepReport fileSummary(targetPath);
@@ -60,7 +60,7 @@ inline FileGrepReport generateFGR(std::filesystem::path const& targetPath, std::
 
 
 inline void printGrepReport(std::vector<FileGrepReport> const& totalReport, timer::PerformanceTimer& timer,
-	std::mutex* p_mxOutput, FileGrepReport::StringQueue output) {
+	std::mutex* p_mxOutput, FileGrepReport::StringQueue& output) {
 	std::stringstream os;
 	os << "Grep Report:\n\n";
 	size_t totalMatches = 0;
