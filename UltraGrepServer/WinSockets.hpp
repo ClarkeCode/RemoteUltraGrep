@@ -71,7 +71,7 @@ namespace networking {
 
 	public:
 		std::string getIpAddressString() const { return _ipAddrString; }
-		std::string getIpPortString() const { return _ipAddrString + ':' + to_string(_portNum); }
+		std::string getIpPortString() const { return _ipAddrString + ':' + std::to_string(_portNum); }
 
 		//Send/Receive info return the count of bytes received/sent
 		template<typename T>
@@ -99,7 +99,7 @@ namespace networking {
 		virtual void _registerIpAddress(std::string const& ipAddress, unsigned short portNumber) override {
 			_socket = socket(_family, SOCK_STREAM, IPPROTO_TCP);
 			if (_socket == SOCKET_ERROR)
-				throw WsaException("Could not generate a valid socket to '" + ipAddress + ":" + to_string(portNumber) + "'");
+				throw WsaException("Could not generate a valid socket to '" + ipAddress + ":" + std::to_string(portNumber) + "'");
 
 			if (_family == AF_INET) {
 				_inet4addr.sin_family = _family;
