@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
 	cout << "Attempting server connection at " << clientIp << endl;
 	try {
 		networking::WindowsSocketActivation wsa;
-		networking::TCPClientSocket* client = &networking::TCPClientSocket(clientIp, 55444);
+		networking::TCPClientSocket* client = new networking::TCPClientSocket(clientIp, 55444);
 		cout << "Successfully connected at " << clientIp << "\n\n";
 
 		string line;
@@ -62,6 +62,7 @@ int main(int argc, char* argv[]) {
 			cout << generateCursor(clientIp);
 			getline(cin, line);
 			possibleCommands(cout, commands, line, generateCursor(clientIp).size());
+			client->sendInfo<string>(line);
 		} while (!applicationFinished);
 
 		return EXIT_SUCCESS;
