@@ -6,6 +6,7 @@ using namespace std;
 #include "../UltraGrepServer/WinSockets.hpp"
 #include <map>
 #include <algorithm>
+#include <regex>
 #include "../UltraGrepServer/RemoteCommands.hpp"
 
 remote::CommandEnum possibleCommands(ostream& os, map<string, remote::CommandEnum>& commands, string& userInput, size_t leftSideOffset = 0) {
@@ -34,14 +35,20 @@ remote::CommandEnum possibleCommands(ostream& os, map<string, remote::CommandEnu
 	return remote::NOACTION;
 }
 
-#include <regex>
 string generateCursor(string const& ipAddr) { 
 	if (ipAddr != "")
 		return "ugrepclient [" + ipAddr + "]> ";
 	return "ugrepclient> "; }
 
+string trimString(string const& untrimmed) {
+	string leftTrim(untrimmed.begin() + untrimmed.find_first_not_of(' '), untrimmed.end());
+	return string(leftTrim.begin(), leftTrim.begin() + leftTrim.find_last_not_of(' ') + 1);
+}
+
 int main(int argc, char* argv[]) {
 	string clientIp = "127.0.0.1";
+	constexpr unsigned short PORT_NUM = 55444;
+
 	if (argc > 1) {
 		if (regex_match(argv[1], regex(R"ipv4format((?:\d{1,3}\.){3}\d{1,3})ipv4format"))) {
 			clientIp = argv[1];
@@ -64,16 +71,42 @@ int main(int argc, char* argv[]) {
 	try {
 		networking::WindowsSocketActivation wsa;
 
-		while (!isClientFinished) {
-			p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, 55444);
-			cout << "Successfully connected at " << clientIp << "\n\n";
+		p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
+		cout << "Successfully connected at " << clientIp << "\n\n";
 
+		while (!isClientFinished) {
 			string line;
 			do {
 				cout << generateCursor(clientIp);
 				getline(cin, line);
-				possibleCommands(cout, commands, line, generateCursor(clientIp).size());
-				p_clientSock->sendInfo<string>(line);
+				remote::CommandEnum commIdent = possibleCommands(cout, commands, line, generateCursor(clientIp).size());
+
+				string compare;
+				string remains;
+				switch (commIdent) {
+				case remote::DROP:
+					clientIp = "";
+					p_clientSock->sendInfo<remote::CommandEnum>(commIdent);
+					p_clientSock = nullptr;
+					break;
+				case remote::CONNECT:
+					compare = "connect";
+					remains = trimString(string(mismatch(compare.begin(), compare.end(), line.begin(), line.end()).second, line.end()));
+					if (regex_match(remains, regex(R"ipv4format((?:\d{1,3}\.){3}\d{1,3})ipv4format"))) {
+						clientIp = remains;
+						p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
+					}
+					else {
+						cout << "Not a valid IP address" << endl << endl;
+					}
+
+					break;
+
+				default:
+					break;
+				}
+
+				//p_clientSock->sendInfo<string>(line);
 			} while (p_clientSock != nullptr);
 		}
 		

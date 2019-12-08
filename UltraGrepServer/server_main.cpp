@@ -5,6 +5,7 @@
 #include <memory>
 using namespace std;
 #include "WinSockets.hpp"
+#include "RemoteCommands.hpp"
 
 int main(int argc, char* argv[]) {
 	bool isServerOperational = true;
@@ -27,11 +28,15 @@ int main(int argc, char* argv[]) {
 			cout << "Recieved a client" << endl;
 
 			//While the client socket is pointing to a valid socket object, process the input
-			string clientInput;
+			remote::CommandEnum clientInput = remote::NOACTION;
 			do {
-				p_clientSock->receiveInfo<string>(clientInput);
-				if (clientInput != "")
+				p_clientSock->receiveInfo<remote::CommandEnum>(clientInput);
+				if (clientInput != remote::NOACTION)
 					cout << "Got '" << clientInput << "' from the client" << endl;
+				if (clientInput == remote::DROP) {
+					cout << "Client disconnected\n\n";
+					p_clientSock = nullptr;
+				}
 			} while (p_clientSock != nullptr);
 
 		}
