@@ -20,7 +20,7 @@ bool UltraGrepService::runUltraGrep(StringQueue& arguments, std::mutex* p_mxOutp
 	 path targetFolder;
 	 regex regexString, interestedFileExtensions;
 
-	 if (!unpackCommandLineArgs(arguments, targetFolder, regexString, interestedFileExtensions, isVerbose))
+	 if (!unpackCommandLineArgs(arguments, targetFolder, regexString, interestedFileExtensions, isVerbose, p_mxOutput, output))
 		 return false;
 
 
