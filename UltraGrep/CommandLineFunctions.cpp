@@ -8,11 +8,13 @@
 #include "CommandLineFunctions.hpp"
 
 bool unpackCommandLineArgs(std::queue<std::string>& args,
-	std::filesystem::path& target, std::regex& regexPhrase, std::regex& extensions, bool& verbosity) {
+	std::filesystem::path& target, std::regex& regexPhrase, std::regex& extensions, bool& verbosity,
+	std::mutex* p_mxOutput, std::queue<std::string>& output) {
 	using namespace std;
 	using namespace filesystem;
 	if (args.empty()) {
-		cout << "Ultragrep implemented by Robert Clarke\nUsage: ultragrep [-v] folder regex [.ext]*" << endl;
+		lock_guard<mutex>(*p_mxOutput);
+		output.push("Ultragrep implemented by Robert Clarke\nUsage: ultragrep [-v] folder regex [.ext]*\n");
 		return false;
 	}
 
@@ -27,7 +29,8 @@ bool unpackCommandLineArgs(std::queue<std::string>& args,
 	if (!args.empty())
 		hold = args.front();
 	else {
-		cout << "Missing target folder" << endl;
+		lock_guard<mutex>(*p_mxOutput);
+		output.push("Missing target folder\n");
 		return false;
 	}
 	target = path(hold);
@@ -35,7 +38,8 @@ bool unpackCommandLineArgs(std::queue<std::string>& args,
 
 	//Retrieve the regex phrase
 	if (args.empty()) {
-		cout << "Missing regex phrase" << endl;
+		lock_guard<mutex>(*p_mxOutput);
+		output.push("Missing regex phrase\n");
 		return false;
 	}
 	regexPhrase = regex(args.front());

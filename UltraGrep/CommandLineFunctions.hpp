@@ -12,6 +12,8 @@
 #include <filesystem>
 #include <regex>
 #include <iostream>
+#include <mutex>
 
 bool unpackCommandLineArgs(std::queue<std::string>& args, std::filesystem::path& target,
-	std::regex& regexPhrase, std::regex& extensions, bool& verbosity);
+	std::regex& regexPhrase, std::regex& extensions, bool& verbosity, 
+	std::mutex* p_mxOutput, std::queue<std::string>& output);
