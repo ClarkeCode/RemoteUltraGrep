@@ -1,41 +1,36 @@
 
 #include <string>
 #include <iostream>
+#include <regex>
 using namespace std;
 #include "WinSockets.hpp"
 
 int main(int argc, char* argv[]) {
-	cout << "We're working" << endl;
+	bool isServerOperational = true;
+	string serverIp = "127.0.0.1";
+	if (argc > 1) {
+		if (regex_match(argv[1], regex(R"ipv4format((?:\d{1,3}\.){3}\d{1,3})ipv4format")))
+			serverIp = argv[1];
+	}
 
 	try {
 		networking::WindowsSocketActivation wsa;
-		networking::TCPServerSocket serverSock("127.0.0.1", 55444);
+		networking::TCPServerSocket serverSock(serverIp, 55444);
+		cout << "Server opened at '" << serverSock.getIpPortString() << "'" << endl;
+		cout << "Waiting for a client to connect..." << endl;
 		networking::TCPClientSocket clientSock = serverSock.WaitForConnection();
+		cout << "Recieved a client" << endl;
 
 		string clientInput;
 		do {
 			clientSock.receiveInfo<string>(clientInput);
-			cout << "Got '" << clientInput << "' from the client" << endl;
+			if (clientInput != "")
+				cout << "Got '" << clientInput << "' from the client" << endl;
 		} while (clientInput != "quit");
 		return EXIT_SUCCESS;
-
-		{
-			//unsigned short xx;
-			string yy("Placeholder");
-
-			//clientSock.receiveInfo<unsigned short>(xx);
-			clientSock.receiveInfo<string>(yy);
-			cout << yy << endl;
-
-			//clientSock.sendInfo<unsigned short>(((unsigned short)12345));
-			clientSock.sendInfo<string>("Something from server");
-
-			char ch;
-			cout << ">";
-			cin >> ch;
-		}
 	}
 	catch (networking::SocketException & ex) {
 		cout << ex.what() << endl;
+		return EXIT_FAILURE;
 	}
 }

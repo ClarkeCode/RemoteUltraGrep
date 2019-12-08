@@ -38,9 +38,6 @@
     <ClCompile Include="PerformanceTimer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UltraGrep_main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="UltraGrepService.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -15,10 +15,15 @@ namespace networking {
 
 	class SocketException : public std::runtime_error {
 	public:
-		SocketException(std::string const& description, int errorCode) :
-			runtime_error("[Socket Exception" + (errorCode == 0 ? "" : " - Code #" + std::to_string(errorCode))
+		SocketException(std::string const& description, int errorCode, std::string exceptionType = "Socket") :
+			runtime_error("[" + exceptionType + " Exception" + (errorCode == 0 ? "" : " - Code #" + std::to_string(errorCode))
 				+ "]" + (description.empty() ? "" : ": " + description)) {}
 		SocketException(std::string const& description = "") : SocketException(description, 0) {}
+	};
+
+	class WsaException : public SocketException {
+	public:
+		WsaException(std::string description) : SocketException(description, WSAGetLastError(), "WSA") {}
 	};
 
 
@@ -66,6 +71,7 @@ namespace networking {
 
 	public:
 		std::string getIpAddressString() const { return _ipAddrString; }
+		std::string getIpPortString() const { return _ipAddrString + ':' + to_string(_portNum); }
 
 		//Send/Receive info return the count of bytes received/sent
 		template<typename T>
@@ -92,6 +98,8 @@ namespace networking {
 		//Will be called in TCPSocket constructor
 		virtual void _registerIpAddress(std::string const& ipAddress, unsigned short portNumber) override {
 			_socket = socket(_family, SOCK_STREAM, IPPROTO_TCP);
+			if (_socket == SOCKET_ERROR)
+				throw WsaException("Could not generate a valid socket to '" + ipAddress + ":" + to_string(portNumber) + "'");
 
 			if (_family == AF_INET) {
 				_inet4addr.sin_family = _family;
@@ -108,15 +116,19 @@ namespace networking {
 	public:
 		template<typename T>
 		int sendInfo(T const& item) {
-			return send(_socket, (byte_t*)&item, sizeof(item), 0);
+			int check = send(_socket, (byte_t*)&item, sizeof(item), 0);
+			if (check == SOCKET_ERROR) throw WsaException("Could not sucessfully send data type '" + std::string(typeid(T).name()) + "'");
+			return check;
 		}
 
 		template<>
 		int sendInfo<std::string>(std::string const& item) {
 			unsigned short holder = (unsigned short)item.size(); //can be unified with line below
-			sendInfo<unsigned short>(holder);
+			int bytesSent =  sendInfo<unsigned short>(holder);
+			if (bytesSent == SOCKET_ERROR)
+				throw SocketException("Encountered an error sending character sequence signaller", WSAGetLastError());
 
-			int bytesSent = 0;
+			bytesSent = 0;
 			for (char const& ch : item) {
 				bytesSent += sendInfo<char>(ch);
 			}
@@ -125,14 +137,16 @@ namespace networking {
 
 		template<typename T>
 		int receiveInfo(T& item) {
-			return recv(_socket, (byte_t*)&item, sizeof(item), 0);
+			int check = recv(_socket, (byte_t*)&item, sizeof(item), 0);
+			if (check == SOCKET_ERROR) throw WsaException("Could not sucessfully receive data type '" + std::string(typeid(T).name()) + "'");
+			return check;
 		}
 
 		template<>
 		int receiveInfo<std::string>(std::string& item) {
-			unsigned short handshake;
+			unsigned short handshake = 0;
 			int hsCheck = receiveInfo<unsigned short>(handshake);
-			if (hsCheck != 2)
+			if (handshake != 0 && hsCheck != 2)
 				throw SocketException("Failed to properly register character transfer");
 
 			std::string ss;
@@ -142,7 +156,9 @@ namespace networking {
 				bytesRecv += receiveInfo<char>(ch);
 				ss += ch;
 			}
-			item = ss;
+
+			if (bytesRecv > 0) //Only overwrite the string if information has been recieved
+				item = ss;
 			return bytesRecv;
 		}
 	};
@@ -151,7 +167,7 @@ namespace networking {
 	//Client TCP Sock
 	class TCPClientSocket : public TCPSocket {
 	public:
-		TCPClientSocket(std::string const& ipAddress, unsigned short portNumber, NetworkFamily inetProtocol = NetworkFamily::IPv4) :
+		TCPClientSocket(std::string ipAddress, unsigned short portNumber, NetworkFamily inetProtocol = NetworkFamily::IPv4) :
 			TCPSocket(ipAddress, portNumber, inetProtocol) {
 			_connectToServer();
 		}
@@ -160,11 +176,11 @@ namespace networking {
 		void _connectToServer() {
 			if (_family == AF_INET) {
 				if (connect(_socket, (SOCKADDR*)&_inet4addr, sizeof(_inet4addr)) == SOCKET_ERROR)
-					throw SocketException("Could not connect to the server", WSAGetLastError());
+					throw WsaException("Could not connect to the server");
 			}
 			else if (_family == AF_INET6) {
 				if (connect(_socket, (SOCKADDR*)&_inet6addr, sizeof(_inet6addr)) == SOCKET_ERROR)
-					throw SocketException("Could not connect to the server", WSAGetLastError());
+					throw WsaException("Could not connect to the server");
 			}
 		}
 
@@ -200,16 +216,16 @@ namespace networking {
 			//Bind server address to the socket
 			if (_family == AF_INET) {
 				if (bind(_socket, (SOCKADDR*)&_inet4addr, sizeof(_inet4addr)) == SOCKET_ERROR)
-					throw SocketException("Server address could not be bound to socket", WSAGetLastError());
+					throw WsaException("Server address could not be bound to socket");
 			}
 			else if (_family == AF_INET6) {
 				if (bind(_socket, (SOCKADDR*)&_inet6addr, sizeof(_inet6addr)) == SOCKET_ERROR)
-					throw SocketException("Server address could not be bound to socket", WSAGetLastError());
+					throw WsaException("Server address could not be bound to socket");
 			}
 
 			//Specify limit on the impending connection queue
 			if (listen(_socket, connectionQueueLength) == SOCKET_ERROR)
-				throw SocketException("Socket failed to listen for incoming calls", WSAGetLastError());
+				throw WsaException("Socket failed to listen for incoming calls");
 		}
 	};
 }
