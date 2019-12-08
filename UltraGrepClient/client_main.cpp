@@ -6,25 +6,32 @@ using namespace std;
 #include "../UltraGrepServer/WinSockets.hpp"
 #include <map>
 #include <algorithm>
+#include "../UltraGrepServer/RemoteCommands.hpp"
 
-void possibleCommands(ostream& os, map<char, string>& commands, string& userInput, size_t leftSideOffset = 0) {
-	map<char, string>::const_iterator it = commands.find(userInput[0]);
-	if (it == commands.end())
-		os << "Not a command" << endl;
-	else {
-		string testCommand = commands[userInput[0]];
+remote::CommandEnum possibleCommands(ostream& os, map<string, remote::CommandEnum>& commands, string& userInput, size_t leftSideOffset = 0) {
+
+	for (map<string, remote::CommandEnum>::iterator it = commands.begin(); it != commands.end(); it++) {
+		string testCommand = it->first;
 		pair<string::iterator, string::iterator> pair = mismatch(testCommand.begin(), testCommand.end(), userInput.begin(), userInput.end());
 
-		if (pair.first != testCommand.end()) {
+		if (pair.first == testCommand.begin()) { //no overlap
+			continue;
+		}
+		else if (pair.first != testCommand.end()) { //mispelling
 			string spacing(pair.second - userInput.begin() + leftSideOffset, ' ');
 			os << spacing << "^" << endl;
-			os << spacing << "Mispelled command! Did you mean: '" << testCommand << "'?" << endl;
+			os << spacing << "Mispelled command! Did you mean: '" << testCommand << "'?" << "\n\n";
+			return remote::NOACTION;
 		}
-		else {
-			os << "Good command" << endl;
+		else { //valid command
+			os << endl;
+			return it->second;
 		}
 	}
+	os << "\n'" << userInput << "' is not a valid command! Commands are:\n";
+	for (auto commmandStrings : commands) { os << "    " << commmandStrings.first << "\n"; }
 	os << endl;
+	return remote::NOACTION;
 }
 
 #include <regex>
@@ -41,13 +48,13 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	map<char, string> commands{
-		{'g', "grep"},
-		{'d', "drop"},
-		{'c', "connect"},
-		{'s', "stopserver"}
+	map<string, remote::CommandEnum> commands{
+		{"grep", remote::GREP},
+		{"drop", remote::DROP},
+		{"connect", remote::CONNECT},
+		{"stopserver", remote::STOPSERVER}
 		//help - show help + description
-		//kill - exit the client
+		//exit - exit the client
 	};
 
 	bool isClientFinished = false;
