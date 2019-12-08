@@ -71,6 +71,7 @@ namespace networking {
 
 	public:
 		std::string getIpAddressString() const { return _ipAddrString; }
+		std::string getIpPortString() const { return _ipAddrString + ':' + to_string(_portNum); }
 
 		//Send/Receive info return the count of bytes received/sent
 		template<typename T>
