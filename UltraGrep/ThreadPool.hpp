@@ -49,7 +49,7 @@ namespace threading {
 		void doTaskProcessing() {
 			while (!p_threadPool->finishedProcessing) {
 				{	ulock lk(p_threadPool->mxConditionVar);
-				p_threadPool->cvNotify.wait(lk);
+					p_threadPool->cvNotify.wait(lk);
 				}
 				if (p_threadPool->finishedProcessing)
 					break;
@@ -58,11 +58,11 @@ namespace threading {
 				task_t unprocessedTask;
 				bool hasTask = false;
 				{	lguard lk(p_threadPool->mxTaskQueue);
-				if (!p_threadPool->taskQueue.empty()) {
-					unprocessedTask = p_threadPool->taskQueue.front();
-					p_threadPool->taskQueue.pop();
-					hasTask = true;
-				}
+					if (!p_threadPool->taskQueue.empty()) {
+						unprocessedTask = p_threadPool->taskQueue.front();
+						p_threadPool->taskQueue.pop();
+						hasTask = true;
+					}
 				}
 
 				if (hasTask)
@@ -110,7 +110,7 @@ namespace threading {
 		void doTaskProcessing() {
 			while (!p_threadPool->finishedProcessing) {
 				{	ulock lk(p_threadPool->mxConditionVar);
-				p_threadPool->cvNotify.wait(lk);
+					p_threadPool->cvNotify.wait(lk);
 				}
 				if (p_threadPool->finishedProcessing)
 					break;
@@ -119,11 +119,11 @@ namespace threading {
 				task_t unprocessedTask;
 				bool hasTask = false;
 				{	lguard lk(p_threadPool->mxTaskQueue);
-				if (!p_threadPool->taskQueue.empty()) {
-					unprocessedTask = p_threadPool->taskQueue.front();
-					p_threadPool->taskQueue.pop();
-					hasTask = true;
-				}
+					if (!p_threadPool->taskQueue.empty()) {
+						unprocessedTask = p_threadPool->taskQueue.front();
+						p_threadPool->taskQueue.pop();
+						hasTask = true;
+					}
 				}
 				if (hasTask)
 					p_func(unprocessedTask);
@@ -225,10 +225,10 @@ namespace threading {
 
 		void enqueue(task_t task) {
 			{	lguard lk(mxTaskQueue);
-			taskQueue.emplace(task);
+				taskQueue.emplace(task);
 			}
 			{	ulock lk(mxConditionVar);
-			cvNotify.notify_one();
+				cvNotify.notify_one();
 			}
 		}
 
@@ -236,16 +236,16 @@ namespace threading {
 			//finish up any remaining tasks that might be in the taskqueue
 			for (;;) {
 				{	lguard lk(mxTaskQueue);
-				if (taskQueue.empty()) break;
+					if (taskQueue.empty()) break;
 				}
 				{	ulock lk(mxConditionVar);
-				cvNotify.notify_one();
+					cvNotify.notify_one();
 				}
 			}
 			finishedProcessing = true; //flip flag
 			//let threads continue past the barrier and break out of processing loops
 			{	ulock lk(mxConditionVar);
-			cvNotify.notify_all();
+				cvNotify.notify_all();
 			}
 			//join all threads before handing control back to caller
 			for (AbstractThread* element : threadContainer) {
