@@ -97,6 +97,8 @@ namespace networking {
 		//Will be called in TCPSocket constructor
 		virtual void _registerIpAddress(std::string const& ipAddress, unsigned short portNumber) override {
 			_socket = socket(_family, SOCK_STREAM, IPPROTO_TCP);
+			if (_socket == SOCKET_ERROR)
+				throw WsaException("Could not generate a valid socket to '" + ipAddress + ":" + to_string(portNumber) + "'");
 
 			if (_family == AF_INET) {
 				_inet4addr.sin_family = _family;
@@ -164,7 +166,7 @@ namespace networking {
 	//Client TCP Sock
 	class TCPClientSocket : public TCPSocket {
 	public:
-		TCPClientSocket(std::string const& ipAddress, unsigned short portNumber, NetworkFamily inetProtocol = NetworkFamily::IPv4) :
+		TCPClientSocket(std::string ipAddress, unsigned short portNumber, NetworkFamily inetProtocol = NetworkFamily::IPv4) :
 			TCPSocket(ipAddress, portNumber, inetProtocol) {
 			_connectToServer();
 		}
