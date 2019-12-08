@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
 		while (isServerOperational) {
 			//Listen for a client connection
 			cout << "Waiting for a client to connect..." << endl;
-			p_clientSock = make_shared<networking::TCPClientSocket>(serverSock.WaitForConnection());
+			p_clientSock = serverSock.WaitForConnection();
 			cout << "Recieved a client" << endl;
 
 			//While the client socket is pointing to a valid socket object, process the input

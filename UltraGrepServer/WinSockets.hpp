@@ -3,6 +3,7 @@
 
 namespace networking {
 #include <string>
+#include <memory>
 #include <stdexcept>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
@@ -171,6 +172,13 @@ namespace networking {
 			TCPSocket(ipAddress, portNumber, inetProtocol) {
 			_connectToServer();
 		}
+
+		//Alternate constructor for the WaitForConnection in the TCPServerSocket
+		TCPClientSocket(SOCKET socket = SOCKET_ERROR, std::string const& ipAddress = "127.0.0.1",
+			unsigned short portNumber = -1, NetworkFamily inetProtocol = NetworkFamily::IPv4) :
+			TCPSocket(ipAddress, portNumber, inetProtocol) {
+			_socket = socket;
+		}
 	protected:
 		//Should be called in constructor, will block until connection is established
 		void _connectToServer() {
@@ -184,13 +192,7 @@ namespace networking {
 			}
 		}
 
-		//Alternate constructor for the WaitForConnection in the TCPServerSocket
-		TCPClientSocket(SOCKET socket = SOCKET_ERROR, std::string const& ipAddress = "127.0.0.1", 
-			unsigned short portNumber = -1, NetworkFamily inetProtocol = NetworkFamily::IPv4) :
-			TCPSocket(ipAddress, portNumber, inetProtocol) {
-			_socket = socket;
-		}
-		friend class TCPServerSocket;
+		
 	};
 
 
@@ -203,11 +205,11 @@ namespace networking {
 			_startListening(connectionQueueLength);
 		}
 
-		TCPClientSocket WaitForConnection() {
+		shared_ptr<TCPClientSocket> WaitForConnection() {
 			SOCKET acceptedSocketHandle = SOCKET_ERROR;
 			while (acceptedSocketHandle == SOCKET_ERROR)
 				acceptedSocketHandle = accept(_socket, NULL, NULL);
-			return TCPClientSocket(acceptedSocketHandle, _ipAddrString, _portNum, _chosenProtocol);
+			return make_shared<TCPClientSocket>(acceptedSocketHandle, _ipAddrString, _portNum, _chosenProtocol);
 		}
 
 	private:
