@@ -1,6 +1,7 @@
 
 #include <string>
 #include <iostream>
+#include <memory> //smart pointers
 using namespace std;
 #include "../UltraGrepServer/WinSockets.hpp"
 #include <map>
@@ -50,11 +51,12 @@ int main(int argc, char* argv[]) {
 	};
 
 	bool applicationFinished = false;
+	shared_ptr<networking::TCPClientSocket> p_clientSock = nullptr;
 
 	cout << "Attempting server connection at " << clientIp << endl;
 	try {
 		networking::WindowsSocketActivation wsa;
-		networking::TCPClientSocket* client = new networking::TCPClientSocket(clientIp, 55444);
+		p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, 55444);
 		cout << "Successfully connected at " << clientIp << "\n\n";
 
 		string line;
@@ -62,7 +64,7 @@ int main(int argc, char* argv[]) {
 			cout << generateCursor(clientIp);
 			getline(cin, line);
 			possibleCommands(cout, commands, line, generateCursor(clientIp).size());
-			client->sendInfo<string>(line);
+			p_clientSock->sendInfo<string>(line);
 		} while (!applicationFinished);
 
 		return EXIT_SUCCESS;
