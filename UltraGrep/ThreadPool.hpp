@@ -12,7 +12,11 @@
 #include <atomic>
 #include <vector>
 #include <queue>
+
+#define THREADPOOL_WIN32_THREADING_ALLOWED false
+#if THREADPOOL_WIN32_THREADING_ALLOWED
 #include <Windows.h>
+#endif
 
 namespace threading {
 	using lguard = std::lock_guard<std::mutex>;
@@ -67,6 +71,7 @@ namespace threading {
 		}
 	};
 
+#if THREADPOOL_WIN32_THREADING_ALLOWED
 	//Win32 concrete thread class
 	template <class task_t>
 	class ConcreteThreadWin32 : public ConcreteThreadInterface<task_t> {
@@ -89,6 +94,7 @@ namespace threading {
 		}
 		~ConcreteThreadWin32() { CloseHandle(hThread); }
 	};
+#endif
 
 	//C++11 concrete thread
 	template <class task_t>
@@ -143,6 +149,7 @@ namespace threading {
 		virtual void join() = 0;
 	};
 
+#if THREADPOOL_WIN32_THREADING_ALLOWED
 	//Win32 adapter
 	template <class task_t>
 	class AdapterThreadWin32 : public AbstractThread, private ConcreteThreadWin32<task_t> {
@@ -158,6 +165,7 @@ namespace threading {
 			ConcreteThreadWin32<task_t>(tp_ptr, procedure) {}
 		inline virtual void join() override { this->doJoin(); }
 	};
+#endif
 
 	//C++11 Adapter thread
 	template <class task_t>
@@ -194,7 +202,9 @@ namespace threading {
 		task_queue taskQueue;
 		bool finishedProcessing;
 
+#if THREADPOOL_WIN32_THREADING_ALLOWED
 		friend class ConcreteThreadWin32<task_t>;
+#endif
 		friend class ConcreteThreadCPP11<task_t>;
 		friend class ConcreteThreadInterface<task_t>;
 	public:
