@@ -136,6 +136,7 @@
   <ItemGroup>
     <ClCompile Include="CommandLineFunctions.cpp" />
     <ClCompile Include="PerformanceTimer.cpp" />
+    <ClCompile Include="UltraGrepService.cpp" />
     <ClCompile Include="UltraGrep_main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
