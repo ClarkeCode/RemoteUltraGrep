@@ -5,6 +5,7 @@
 namespace remote {
 
 	enum CommandEnum {
+		NOACTION,
 		DROP,
 		CONNECT,
 		STOPSERVER,
