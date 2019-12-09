@@ -81,25 +81,35 @@ int main(int argc, char* argv[]) {
 				getline(cin, line);
 				remote::CommandEnum commIdent = possibleCommands(cout, commands, line, generateCursor(clientIp).size());
 
-				string compare;
-				string remains;
+				shared_ptr<remote::RemoteCommand> p_command = nullptr;
+
 				switch (commIdent) {
 				case remote::DROP:
+					p_command = make_shared<remote::DropCommand>(line);
 					clientIp = "";
-					p_clientSock->sendInfo<remote::CommandEnum>(commIdent);
+					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
+					cout << "Disconected from '" << p_clientSock->getIpPortString() << "'\n\n";
 					p_clientSock = nullptr;
 					break;
+
 				case remote::CONNECT:
-					compare = "connect";
-					remains = trimString(string(mismatch(compare.begin(), compare.end(), line.begin(), line.end()).second, line.end()));
-					if (regex_match(remains, regex(R"ipv4format((?:\d{1,3}\.){3}\d{1,3})ipv4format"))) {
-						clientIp = remains;
+					p_command = make_shared<remote::ConnectCommand>(line);
+					if (p_command->isValid) {
+						clientIp = p_command->arguments;
 						p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
 					}
 					else {
-						cout << "Not a valid IP address" << endl << endl;
+						cout << "'" << p_command->arguments << "' is not a valid IP address\n\n";
 					}
+					break;
 
+				case remote::STOPSERVER:
+					p_command = make_shared<remote::StopServerCommand>(line);
+
+					clientIp = "";
+					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
+					cout << "Stopped server at '" << p_clientSock->getIpPortString() << "', disconnecting...\n\n";
+					p_clientSock = nullptr;
 					break;
 
 				default:

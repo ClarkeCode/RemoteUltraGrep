@@ -37,6 +37,11 @@ int main(int argc, char* argv[]) {
 					cout << "Client disconnected\n\n";
 					p_clientSock = nullptr;
 				}
+				else if (clientInput == remote::STOPSERVER) {
+					cout << "Shutting down..." << endl;
+					p_clientSock = nullptr;
+					isServerOperational = false;
+				}
 			} while (p_clientSock != nullptr);
 
 		}
