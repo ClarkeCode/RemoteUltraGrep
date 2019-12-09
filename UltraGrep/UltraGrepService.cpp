@@ -7,11 +7,6 @@
 #include <mutex>
 #include <functional>
 
-#include "CommandLineFunctions.hpp"
-#include "FileReporting.hpp"
-#include "PerformanceTimer.hpp"
-#include "ThreadPool.hpp"
-
 using namespace std;
 using namespace filesystem;
 

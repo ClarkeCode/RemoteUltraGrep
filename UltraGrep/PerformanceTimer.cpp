@@ -7,19 +7,19 @@
 */
 #include "PerformanceTimer.hpp"
 
-timer::PerformanceTimer::PerformanceTimer() :
-	liStartTime(LARGE_INTEGER()), liEndTime(LARGE_INTEGER()), liTicksPerSecond(LARGE_INTEGER()), hasStopped(false) {
-	QueryPerformanceCounter(&liStartTime);
-	QueryPerformanceFrequency(&liTicksPerSecond);
-}
-
-void timer::PerformanceTimer::stop() {
-	hasStopped = true;
-	QueryPerformanceCounter(&liEndTime);
-}
-
-double timer::PerformanceTimer::getTime() {
-	if (!hasStopped)
-		stop();
-	return (liEndTime.QuadPart - liStartTime.QuadPart) / double(liTicksPerSecond.QuadPart);
-}
+//timer::PerformanceTimer::PerformanceTimer() :
+//	liStartTime(LARGE_INTEGER()), liEndTime(LARGE_INTEGER()), liTicksPerSecond(LARGE_INTEGER()), hasStopped(false) {
+//	QueryPerformanceCounter(&liStartTime);
+//	QueryPerformanceFrequency(&liTicksPerSecond);
+//}
+//
+//void timer::PerformanceTimer::stop() {
+//	hasStopped = true;
+//	QueryPerformanceCounter(&liEndTime);
+//}
+//
+//double timer::PerformanceTimer::getTime() {
+//	if (!hasStopped)
+//		stop();
+//	return (liEndTime.QuadPart - liStartTime.QuadPart) / double(liTicksPerSecond.QuadPart);
+//}

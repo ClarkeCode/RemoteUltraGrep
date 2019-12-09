@@ -13,10 +13,25 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\UGrep">
+      <UniqueIdentifier>{d199faa6-9933-4229-980f-95dfc8222c34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\UGrep">
+      <UniqueIdentifier>{ab4315b6-3c5e-4719-a2d5-f5de6fb35593}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="server_main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UltraGrepService.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UGrep\CommandLineFunctions.cpp">
+      <Filter>Source Files\UGrep</Filter>
+    </ClCompile>
+    <ClCompile Include="UGrep\PerformanceTimer.cpp">
+      <Filter>Source Files\UGrep</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -25,6 +40,21 @@
     </ClInclude>
     <ClInclude Include="RemoteCommands.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UltraGrepService.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UGrep\CommandLineFunctions.hpp">
+      <Filter>Header Files\UGrep</Filter>
+    </ClInclude>
+    <ClInclude Include="UGrep\FileReporting.hpp">
+      <Filter>Header Files\UGrep</Filter>
+    </ClInclude>
+    <ClInclude Include="UGrep\PerformanceTimer.hpp">
+      <Filter>Header Files\UGrep</Filter>
+    </ClInclude>
+    <ClInclude Include="UGrep\ThreadPool.hpp">
+      <Filter>Header Files\UGrep</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

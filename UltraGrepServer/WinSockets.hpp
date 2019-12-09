@@ -1,5 +1,8 @@
 #pragma once
-
+/*
+Created by Robert Clarke and Evan Burgess
+Date: 2019-12-08
+*/
 
 namespace networking {
 #include <string>

@@ -6,14 +6,22 @@
 @brief:		Declaration of the PerformanceTimer class
 */
 #pragma once
+#include <chrono>
+//#include <Windows.h>
 namespace timer {
-#include <Windows.h>
 	class PerformanceTimer {
-		LARGE_INTEGER liStartTime, liEndTime, liTicksPerSecond;
+		//LARGE_INTEGER liStartTime, liEndTime, liTicksPerSecond;
+		std::chrono::steady_clock::time_point startTime, endTime;
 		bool hasStopped;
 	public:
-		PerformanceTimer();
-		void stop();
-		double getTime();
+		PerformanceTimer() : hasStopped(false), 
+			startTime(std::chrono::high_resolution_clock::now()), endTime(std::chrono::high_resolution_clock::now()) {};
+		inline void stop() {
+			hasStopped = true;
+			endTime = std::chrono::high_resolution_clock::now();
+		};
+		double getTime() {
+			return (double)std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count();
+		};
 	};
 }

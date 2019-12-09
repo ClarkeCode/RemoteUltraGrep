@@ -1,3 +1,7 @@
+/*
+Created by Robert Clarke and Evan Burgess
+Date: 2019-12-08
+*/
 #pragma once
 #include "WinSockets.hpp"
 #include <string>
@@ -43,10 +47,14 @@ namespace remote {
 	struct StopServerCommand : public RemoteCommand {
 		StopServerCommand(std::string userInput) : RemoteCommand(userInput, "stopserver", STOPSERVER) {}
 	};
-
 	struct ConnectCommand : public RemoteCommand {
 		ConnectCommand(std::string userInput) : RemoteCommand(userInput, "connect", CONNECT) {
 			isValid = regex_match(arguments, regex(R"ipv4format((?:\d{1,3}\.){3}\d{1,3})ipv4format"));
+		}
+	};
+	struct GrepCommand : public RemoteCommand {
+		GrepCommand(std::string userInput) : RemoteCommand(userInput, "grep", GREP) {
+			//isValid = regex_match(arguments, regex("grep (?:-v )?\\S*(?: ?\\S*)"));
 		}
 	};
 

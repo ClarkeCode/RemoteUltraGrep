@@ -1,3 +1,7 @@
+/*
+Created by Robert Clarke and Evan Burgess
+Date: 2019-12-08
+*/
 
 #include <string>
 #include <iostream>
@@ -83,6 +87,10 @@ int main(int argc, char* argv[]) {
 
 				shared_ptr<remote::RemoteCommand> p_command = nullptr;
 
+				string outStr;
+				bool gotReports = false;
+				int recordNum = 0;
+
 				switch (commIdent) {
 				case remote::DROP:
 					p_command = make_shared<remote::DropCommand>(line);
@@ -110,6 +118,25 @@ int main(int argc, char* argv[]) {
 					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
 					cout << "Stopped server at '" << p_clientSock->getIpPortString() << "', disconnecting...\n\n";
 					p_clientSock = nullptr;
+					break;
+
+				case remote::GREP:
+					p_command = make_shared<remote::GrepCommand>(line);
+					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
+					p_clientSock->sendInfo<std::string>(p_command->arguments);
+
+					recordNum = 0;
+					while (!gotReports) {
+						p_clientSock->receiveInfo<int>(recordNum);
+						if (recordNum != 0)
+							gotReports = true;
+					}
+
+					for (int x = 0; x < recordNum; ++x) {
+						p_clientSock->receiveInfo<string>(outStr);
+						cout << outStr;
+					}
+					gotReports = false;
 					break;
 
 				default:
