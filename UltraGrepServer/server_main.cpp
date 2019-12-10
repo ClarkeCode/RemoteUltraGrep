@@ -38,16 +38,23 @@ queue<T> queueSplit(string unsplit, char delim = ' ') {
 	return queue<T>(result);
 }
 
-void outboundChannelProcessing(std::mutex* p_mxOutput, 
-	std::queue<std::string>& output, shared_ptr<networking::TCPClientSocket> p_clientSock, bool* isProgramDone) {
+void outboundChannelProcessing(std::mutex* p_mxOutput, std::queue<std::string>& output, 
+	shared_ptr<networking::TCPClientSocket> p_clientSock, bool* isGrepOutputFinished, bool* isOutboundChannelValid) {
 
-	while (!(*isProgramDone)) {
+	while (*isOutboundChannelValid) {
 		if (p_clientSock != nullptr) {
 			lock_guard<mutex> lk(*p_mxOutput);
 			if (!output.empty()) {
 				string transferString = output.front();
 				output.pop();
+				p_clientSock->sendInfo<remote::CommandEnum>(remote::RESPONSE);
 				p_clientSock->sendInfo<string>(transferString);
+				cout << "Xfer: " << transferString << endl;
+			}
+			if (*isGrepOutputFinished) {
+				p_clientSock->sendInfo<remote::CommandEnum>(remote::RESPONSETERMINATION);
+				*isGrepOutputFinished = false;
+				cout << "Xfer finished \n";
 			}
 		}
 	}
@@ -68,6 +75,8 @@ int main(int argc, char* argv[]) {
 	shared_ptr<networking::TCPClientSocket> p_clientSock = nullptr;
 	shared_ptr<thread> p_grepThread = nullptr;
 	shared_ptr<thread> p_outboundChannel = nullptr;
+	bool responseTerminationSignal = false;
+	bool isOutboundChannelValid = true;
 	try {
 		networking::WindowsSocketActivation wsa;
 		networking::TCPServerSocket serverSock(serverIp, 55444);
@@ -77,9 +86,11 @@ int main(int argc, char* argv[]) {
 			//Listen for a client connection
 			cout << "Waiting for a client to connect..." << endl;
 			p_clientSock = serverSock.WaitForConnection();
-			cout << "Recieved a client" << endl;
+
+			isOutboundChannelValid = true;
 			p_outboundChannel = make_shared<thread>(
-				outboundChannelProcessing, &mxOutputQueue, ref(outputQueue), ref(p_clientSock), &isServerOperational);
+				outboundChannelProcessing, &mxOutputQueue, ref(outputQueue), p_clientSock, &responseTerminationSignal, &isOutboundChannelValid);
+			cout << "Recieved a client" << endl;
 
 			//While the client socket is pointing to a valid socket object, process the input
 			remote::CommandEnum clientInput = remote::NOACTION;
@@ -89,12 +100,16 @@ int main(int argc, char* argv[]) {
 					cout << "Got '" << clientInput << "' from the client" << endl;
 				if (clientInput == remote::DROP) {
 					cout << "Client disconnected\n\n";
+					isOutboundChannelValid = false;
+					p_outboundChannel->join();
 					p_clientSock = nullptr;
 				}
 				else if (clientInput == remote::STOPSERVER) {
 					cout << "Shutting down..." << endl;
 					p_clientSock = nullptr;
 					isServerOperational = false;
+					isOutboundChannelValid = false;
+					p_outboundChannel->join();
 				}
 				else if (clientInput == remote::GREP) {
 					string rawArgs;
@@ -106,17 +121,19 @@ int main(int argc, char* argv[]) {
 					//thread ab(myLambda);
 					//ugs.runUltraGrep(splitArgs, &mxOutputQueue, outputQueue);
 					runUltraGrep(splitArgs, &mxOutputQueue, outputQueue);
+					responseTerminationSignal = true;
 					//p_grepThread = make_shared<thread>(runUltraGrep, ref(splitArgs), &mxOutputQueue, ref(outputQueue));
-					p_clientSock->sendInfo<int>(outputQueue.size());
-					while (!outputQueue.empty()) {
-						p_clientSock->sendInfo<string>(outputQueue.front());
-						outputQueue.pop();
-					}
+
+
+					//p_clientSock->sendInfo<int>(outputQueue.size());
+					//while (!outputQueue.empty()) {
+					//	p_clientSock->sendInfo<string>(outputQueue.front());
+					//	outputQueue.pop();
+					//}
 				}
 			} while (p_clientSock != nullptr);
 
 		}
-		
 		return EXIT_SUCCESS;
 	}
 	catch (networking::SocketException & ex) {

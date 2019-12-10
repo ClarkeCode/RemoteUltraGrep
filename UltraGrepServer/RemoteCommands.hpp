@@ -15,7 +15,9 @@ namespace remote {
 		CONNECT,
 		STOPSERVER,
 		GREP,
-		ACKNOWLEDGEMENT
+		
+		RESPONSE,
+		RESPONSETERMINATION
 	};
 
 	struct RemoteCommand {

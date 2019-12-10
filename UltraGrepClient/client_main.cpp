@@ -12,6 +12,8 @@ using namespace std;
 #include <algorithm>
 #include <regex>
 #include "../UltraGrepServer/RemoteCommands.hpp"
+#include <mutex>
+#include <thread>
 
 remote::CommandEnum possibleCommands(ostream& os, map<string, remote::CommandEnum>& commands, string& userInput, size_t leftSideOffset = 0) {
 
@@ -42,12 +44,33 @@ remote::CommandEnum possibleCommands(ostream& os, map<string, remote::CommandEnu
 string generateCursor(string const& ipAddr) { 
 	if (ipAddr != "")
 		return "ugrepclient [" + ipAddr + "]> ";
-	return "ugrepclient> "; }
-
-string trimString(string const& untrimmed) {
-	string leftTrim(untrimmed.begin() + untrimmed.find_first_not_of(' '), untrimmed.end());
-	return string(leftTrim.begin(), leftTrim.begin() + leftTrim.find_last_not_of(' ') + 1);
+	return "ugrepclient> ";
 }
+
+
+void processInboundChannel(bool* isThreadValid, bool* isPendingGrepResults, 
+	mutex* p_mxClientSocket, shared_ptr<networking::TCPClientSocket> p_clientSock) {
+	using namespace remote;
+	while (*isThreadValid) {
+		if (p_clientSock != nullptr && *isPendingGrepResults) {
+			lock_guard<mutex> lk(*p_mxClientSocket);
+			CommandEnum signal = NOACTION;
+			p_clientSock->receiveInfo<CommandEnum>(signal);
+			if (signal == NOACTION) continue;
+
+			if (signal == RESPONSE) {
+				string line;
+				p_clientSock->receiveInfo<string>(line);
+				cout << line;
+			}
+			else if (signal == RESPONSETERMINATION) {
+				*isPendingGrepResults = false;
+				cout << endl;
+			}
+		}
+	}
+}
+
 
 int main(int argc, char* argv[]) {
 	string clientIp = "127.0.0.1";
@@ -69,7 +92,12 @@ int main(int argc, char* argv[]) {
 	};
 
 	bool isClientFinished = false;
+	bool isPendingGrepResults = false;
+	bool isInboundChannelValid = true;
+
+	mutex mxClientSock;
 	shared_ptr<networking::TCPClientSocket> p_clientSock = nullptr;
+	//shared_ptr<thread> p_inboundChannel = nullptr;
 
 	cout << "Attempting server connection at " << clientIp << endl;
 	try {
@@ -77,70 +105,55 @@ int main(int argc, char* argv[]) {
 
 		p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
 		cout << "Successfully connected at " << clientIp << "\n\n";
+		const shared_ptr<thread> p_inboundChannel = make_shared<thread>(processInboundChannel, &isInboundChannelValid, &isPendingGrepResults, &mxClientSock, p_clientSock);
 
 		while (!isClientFinished) {
 			string line;
 			do {
+				if (isPendingGrepResults) continue;
+
 				cout << generateCursor(clientIp);
 				getline(cin, line);
 				remote::CommandEnum commIdent = possibleCommands(cout, commands, line, generateCursor(clientIp).size());
 
 				shared_ptr<remote::RemoteCommand> p_command = nullptr;
 
-				string outStr;
-				bool gotReports = false;
-				int recordNum = 0;
 
-				switch (commIdent) {
-				case remote::DROP:
+				if (commIdent == remote::DROP) {
 					p_command = make_shared<remote::DropCommand>(line);
 					clientIp = "";
 					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
 					cout << "Disconected from '" << p_clientSock->getIpPortString() << "'\n\n";
 					p_clientSock = nullptr;
-					break;
-
-				case remote::CONNECT:
+				}
+				else if (commIdent == remote::CONNECT) {
 					p_command = make_shared<remote::ConnectCommand>(line);
 					if (p_command->isValid) {
 						clientIp = p_command->arguments;
 						p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
+						isInboundChannelValid = false;
+						p_inboundChannel->join();
+						p_inboundChannel = make_shared<thread>(processInboundChannel, &isClientFinished, &isPendingGrepResults, &mxClientSock, p_clientSock);
+						isInboundChannelValid = true;
 					}
 					else {
 						cout << "'" << p_command->arguments << "' is not a valid IP address\n\n";
 					}
-					break;
-
-				case remote::STOPSERVER:
+				}
+				else if (commIdent == remote::STOPSERVER) {
 					p_command = make_shared<remote::StopServerCommand>(line);
 
 					clientIp = "";
 					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
 					cout << "Stopped server at '" << p_clientSock->getIpPortString() << "', disconnecting...\n\n";
 					p_clientSock = nullptr;
-					break;
-
-				case remote::GREP:
+				}
+				else if (commIdent == remote::GREP) {
 					p_command = make_shared<remote::GrepCommand>(line);
 					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
 					p_clientSock->sendInfo<std::string>(p_command->arguments);
 
-					recordNum = 0;
-					while (!gotReports) {
-						p_clientSock->receiveInfo<int>(recordNum);
-						if (recordNum != 0)
-							gotReports = true;
-					}
-
-					for (int x = 0; x < recordNum; ++x) {
-						p_clientSock->receiveInfo<string>(outStr);
-						cout << outStr;
-					}
-					gotReports = false;
-					break;
-
-				default:
-					break;
+					isPendingGrepResults = true;
 				}
 
 				//p_clientSock->sendInfo<string>(line);
