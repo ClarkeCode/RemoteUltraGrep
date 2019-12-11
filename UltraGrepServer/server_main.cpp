@@ -17,7 +17,6 @@ Date: 2019-12-08
 using namespace std;
 #include "WinSockets.hpp"
 #include "RemoteCommands.hpp"
-
 #include "UltraGrepService.hpp"
 
 template <typename T>
@@ -49,19 +48,16 @@ void outboundChannelProcessing(std::mutex* p_mxOutput, std::queue<std::string>& 
 				output.pop();
 				p_clientSock->sendInfo<remote::CommandEnum>(remote::RESPONSE);
 				p_clientSock->sendInfo<string>(transferString);
-				cout << "Xfer: " << transferString << endl;
 			}
 			if (*isGrepOutputFinished) {
 				p_clientSock->sendInfo<remote::CommandEnum>(remote::RESPONSETERMINATION);
 				*isGrepOutputFinished = false;
-				cout << "Xfer finished \n";
 			}
 		}
 	}
 }
 
 int main(int argc, char* argv[]) {
-	//UltraGrepService ugs;
 	bool isServerOperational = true;
 	string serverIp = "127.0.0.1";
 	if (argc > 1) {
@@ -73,7 +69,6 @@ int main(int argc, char* argv[]) {
 	mutex mxOutputQueue;
 
 	shared_ptr<networking::TCPClientSocket> p_clientSock = nullptr;
-	shared_ptr<thread> p_grepThread = nullptr;
 	shared_ptr<thread> p_outboundChannel = nullptr;
 	bool responseTerminationSignal = false;
 	bool isOutboundChannelValid = true;
@@ -87,17 +82,17 @@ int main(int argc, char* argv[]) {
 			cout << "Waiting for a client to connect..." << endl;
 			p_clientSock = serverSock.WaitForConnection();
 
+			//Create outbound communication channel with appropriate pointer to the active client socket
 			isOutboundChannelValid = true;
 			p_outboundChannel = make_shared<thread>(
 				outboundChannelProcessing, &mxOutputQueue, ref(outputQueue), p_clientSock, &responseTerminationSignal, &isOutboundChannelValid);
-			cout << "Recieved a client" << endl;
+			cout << "\nReceived a client" << endl;
 
 			//While the client socket is pointing to a valid socket object, process the input
 			remote::CommandEnum clientInput = remote::NOACTION;
 			do {
 				p_clientSock->receiveInfo<remote::CommandEnum>(clientInput);
-				if (clientInput != remote::NOACTION)
-					cout << "Got '" << clientInput << "' from the client" << endl;
+
 				if (clientInput == remote::DROP) {
 					cout << "Client disconnected\n\n";
 					isOutboundChannelValid = false;
@@ -105,7 +100,7 @@ int main(int argc, char* argv[]) {
 					p_clientSock = nullptr;
 				}
 				else if (clientInput == remote::STOPSERVER) {
-					cout << "Shutting down..." << endl;
+					cout << "Shutting down...\n";
 					p_clientSock = nullptr;
 					isServerOperational = false;
 					isOutboundChannelValid = false;
@@ -116,23 +111,11 @@ int main(int argc, char* argv[]) {
 					p_clientSock->receiveInfo<string>(rawArgs);
 					queue<string> splitArgs = queueSplit<string>(rawArgs);
 
-					//function<void(void)> myLambda = [&]() -> void { UltraGrepService::runUltraGrep(splitArgs, &mxOutputQueue, outputQueue); };
-					//thread ab(UltraGrepService::runUltraGrep, splitArgs, &mxOutputQueue, outputQueue);
-					//thread ab(myLambda);
-					//ugs.runUltraGrep(splitArgs, &mxOutputQueue, outputQueue);
+					cout << "Running: '" << rawArgs << "'\n";
 					runUltraGrep(splitArgs, &mxOutputQueue, outputQueue);
 					responseTerminationSignal = true;
-					//p_grepThread = make_shared<thread>(runUltraGrep, ref(splitArgs), &mxOutputQueue, ref(outputQueue));
-
-
-					//p_clientSock->sendInfo<int>(outputQueue.size());
-					//while (!outputQueue.empty()) {
-					//	p_clientSock->sendInfo<string>(outputQueue.front());
-					//	outputQueue.pop();
-					//}
 				}
 			} while (p_clientSock != nullptr);
-
 		}
 		return EXIT_SUCCESS;
 	}
