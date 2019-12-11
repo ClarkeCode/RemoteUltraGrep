@@ -1,17 +1,81 @@
+/*
+Created by Robert Clarke and Evan Burgess
+Date: 2019-12-08
+*/
 #pragma once
 #include "WinSockets.hpp"
 #include <string>
 
+#include <algorithm>
 namespace remote {
 
 	enum CommandEnum {
+		NOACTION,
 		DROP,
 		CONNECT,
 		STOPSERVER,
 		GREP,
-		ACKNOWLEDGEMENT
+		EXIT,
+		
+		RESPONSE,
+		RESPONSETERMINATION
 	};
 
+	struct RemoteCommand {
+		CommandEnum _commandType;
+		std::string commandSignifier;
+		std::string arguments;
+		bool isValid;
+
+		RemoteCommand(std::string userInput, std::string commandSig, CommandEnum commType = NOACTION) :
+			commandSignifier(commandSig), _commandType(commType), isValid(true) {
+			if (userInput == commandSignifier)
+				arguments = "";
+			else {
+				arguments = trimString(string(
+					mismatch(commandSignifier.begin(), commandSignifier.end(), userInput.begin(), userInput.end()).second, userInput.end()
+				));
+			}
+		}
+		virtual ~RemoteCommand() {}
+
+		void sendCommand(networking::TCPClientSocket& sock) {
+			sock.sendInfo<CommandEnum>(_commandType);
+			_sendRoutine(sock);
+		}
+
+		inline static string trimString(string const& untrimmed) {
+			string leftTrim(untrimmed.begin() + untrimmed.find_first_not_of(' '), untrimmed.end());
+			return string(leftTrim.begin(), leftTrim.begin() + leftTrim.find_last_not_of(' ') + 1);
+		}
+
+	protected:
+		virtual void _sendRoutine(networking::TCPClientSocket& sock) {};
+	};
+
+	struct DropCommand : public RemoteCommand {
+		DropCommand(std::string userInput) : RemoteCommand(userInput, "drop", DROP) {}
+	};
+	struct ExitCommand : public RemoteCommand {
+		ExitCommand(std::string userInput) : RemoteCommand(userInput, "exit", EXIT) {}
+	};
+	struct StopServerCommand : public RemoteCommand {
+		StopServerCommand(std::string userInput) : RemoteCommand(userInput, "stopserver", STOPSERVER) {}
+	};
+	struct ConnectCommand : public RemoteCommand {
+		ConnectCommand(std::string userInput) : RemoteCommand(userInput, "connect", CONNECT) {
+			isValid = regex_match(arguments, regex(R"ipv4format((?:\d{1,3}\.){3}\d{1,3})ipv4format"));
+		}
+	};
+	struct GrepCommand : public RemoteCommand {
+		GrepCommand(std::string userInput) : RemoteCommand(userInput, "grep", GREP) {
+			//isValid = regex_match(arguments, regex("grep (?:-v )?\\S*(?: ?\\S*)"));
+		}
+	protected:
+		virtual void _sendRoutine(networking::TCPClientSocket& sock) override { sock.sendInfo<string>(arguments); };
+	};
+
+	/*
 	struct RemoteCommand {
 	private:
 		CommandEnum _commandType;
@@ -100,4 +164,5 @@ namespace remote {
 			}
 		}
 	};
+	*/
 }

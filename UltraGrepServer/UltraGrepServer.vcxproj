@@ -20,9 +20,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="server_main.cpp" />
+    <ClCompile Include="UGrep\CommandLineFunctions.cpp" />
+    <ClCompile Include="UGrep\PerformanceTimer.cpp" />
+    <ClCompile Include="UltraGrepService.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RemoteCommands.hpp" />
+    <ClInclude Include="UGrep\CommandLineFunctions.hpp" />
+    <ClInclude Include="UGrep\FileReporting.hpp" />
+    <ClInclude Include="UGrep\PerformanceTimer.hpp" />
+    <ClInclude Include="UGrep\ThreadPool.hpp" />
+    <ClInclude Include="UltraGrepService.hpp" />
     <ClInclude Include="WinSockets.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

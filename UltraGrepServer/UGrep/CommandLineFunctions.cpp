@@ -6,6 +6,16 @@
 @brief:		Implementation of the unpackCommandLineArgs function
 */
 #include "CommandLineFunctions.hpp"
+#include <queue>
+#include <string>
+#include <filesystem>
+#include <regex>
+#include <iostream>
+#include <mutex>
+
+//Disabling warning C4101: Unreferenced local variable
+//preprocessor thinks that the p_mxOutput parameter is not used, but it is used in locking
+#pragma warning( disable: 4101 )
 
 bool unpackCommandLineArgs(std::queue<std::string>& args,
 	std::filesystem::path& target, std::regex& regexPhrase, std::regex& extensions, bool& verbosity,
