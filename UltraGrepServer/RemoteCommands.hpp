@@ -36,11 +36,20 @@ namespace remote {
 				));
 			}
 		}
+		virtual ~RemoteCommand() {}
+
+		void sendCommand(networking::TCPClientSocket& sock) {
+			sock.sendInfo<CommandEnum>(_commandType);
+			_sendRoutine(sock);
+		}
 
 		inline static string trimString(string const& untrimmed) {
 			string leftTrim(untrimmed.begin() + untrimmed.find_first_not_of(' '), untrimmed.end());
 			return string(leftTrim.begin(), leftTrim.begin() + leftTrim.find_last_not_of(' ') + 1);
 		}
+
+	protected:
+		virtual void _sendRoutine(networking::TCPClientSocket& sock) {};
 	};
 
 	struct DropCommand : public RemoteCommand {
@@ -58,6 +67,8 @@ namespace remote {
 		GrepCommand(std::string userInput) : RemoteCommand(userInput, "grep", GREP) {
 			//isValid = regex_match(arguments, regex("grep (?:-v )?\\S*(?: ?\\S*)"));
 		}
+	protected:
+		virtual void _sendRoutine(networking::TCPClientSocket& sock) override { sock.sendInfo<string>(arguments); };
 	};
 
 	/*

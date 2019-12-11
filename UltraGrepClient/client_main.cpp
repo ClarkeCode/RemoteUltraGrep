@@ -14,6 +14,7 @@ using namespace std;
 #include "../UltraGrepServer/RemoteCommands.hpp"
 #include <mutex>
 #include <thread>
+#include <queue>
 
 remote::CommandEnum possibleCommands(ostream& os, map<string, remote::CommandEnum>& commands, string& userInput, size_t leftSideOffset = 0) {
 
@@ -36,7 +37,10 @@ remote::CommandEnum possibleCommands(ostream& os, map<string, remote::CommandEnu
 		}
 	}
 	os << "\n'" << userInput << "' is not a valid command! Commands are:\n";
-	for (auto commmandStrings : commands) { os << "    " << commmandStrings.first << "\n"; }
+	for (auto commmandStrings : commands) { 
+		os << "    " << commmandStrings.first << (commmandStrings.first == "connect" ? " address" : "") << 
+			(commmandStrings.first == "grep" ? " [-v] remotefolder regex [.ext]*" : "") << "\n";
+	}
 	os << endl;
 	return remote::NOACTION;
 }
@@ -71,6 +75,102 @@ void processInboundChannel(bool* isThreadValid, bool* isPendingGrepResults,
 	}
 }
 
+void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool* isPendingGrepResults,
+	mutex* p_mxInputProcessingQueue, queue<string>& inputProcessingQueue, mutex* p_mxCout) {
+	using namespace remote;
+	constexpr unsigned short PORT_NUM = 55444;
+
+	map<string, remote::CommandEnum> commands{
+		{"grep", remote::GREP},
+		{"drop", remote::DROP},
+		{"connect", remote::CONNECT},
+		{"stopserver", remote::STOPSERVER}
+		//help - show help + description
+		//exit - exit the client
+	};
+
+	try {
+		shared_ptr<networking::TCPClientSocket> p_clientSock = nullptr;
+		cout << "Attempting server connection at " << clientIp << endl;
+
+		networking::WindowsSocketActivation wsa;
+		p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
+		cout << "Successfully connected at " << clientIp << "\n\n";
+		*isPendingGrepResults = false;
+
+		while (*isProcessingValid) {
+			lock_guard<mutex> coutlk(*p_mxCout);
+
+			//See if the inbound channel should be checked
+			if (*isPendingGrepResults) {
+				CommandEnum signal = NOACTION;
+				p_clientSock->receiveInfo<CommandEnum>(signal);
+				if (signal == NOACTION) continue;
+
+				if (signal == RESPONSE) {
+					string line;
+					p_clientSock->receiveInfo<string>(line);
+					cout << line;
+				}
+				else if (signal == RESPONSETERMINATION) {
+					*isPendingGrepResults = false;
+					cout << endl;
+				}
+			}
+
+			//Outbound check
+			else {
+				lock_guard<mutex> lk(*p_mxInputProcessingQueue);
+				if (!inputProcessingQueue.empty()) {
+					string processLine = inputProcessingQueue.front();
+					inputProcessingQueue.pop();
+
+					remote::CommandEnum commIdent = possibleCommands(cout, commands, processLine, generateCursor(clientIp).size());
+					shared_ptr<remote::RemoteCommand> p_command = nullptr;
+
+					if (commIdent == remote::DROP || (commIdent == remote::CONNECT && p_clientSock != nullptr)) {
+						if (p_clientSock == nullptr) continue;
+						p_command = make_shared<remote::DropCommand>(processLine);
+						p_command->sendCommand(*p_clientSock);
+						clientIp = "";
+						cout << "Disconected from '" << p_clientSock->getIpPortString() << "'\n\n";
+						p_clientSock = nullptr;
+					}
+					if (commIdent == remote::CONNECT) {
+						p_command = make_shared<remote::ConnectCommand>(processLine);
+						if (p_command->isValid) {
+							clientIp = p_command->arguments;
+							p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
+						}
+						else {
+							cout << "'" << p_command->arguments << "' is not a valid IP address\n\n";
+						}
+					}
+					else if (commIdent == remote::STOPSERVER) {
+						if (p_clientSock == nullptr) continue;
+						p_command = make_shared<remote::StopServerCommand>(processLine);
+						p_command->sendCommand(*p_clientSock);
+						clientIp = "";
+						cout << "Stopped server at '" << p_clientSock->getIpPortString() << "', disconnecting...\n\n";
+						p_clientSock = nullptr;
+					}
+					else if (commIdent == remote::GREP) {
+						p_command = make_shared<remote::GrepCommand>(processLine);
+						p_command->sendCommand(*p_clientSock);
+
+						*isPendingGrepResults = true;
+					}
+				}
+			}
+
+		}
+	}
+	catch (networking::SocketException & ex) {
+		cout << ex.what() << endl;
+	}
+	isProcessingValid = false;
+}
+
 
 int main(int argc, char* argv[]) {
 	string clientIp = "127.0.0.1";
@@ -82,84 +182,38 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	map<string, remote::CommandEnum> commands{
-		{"grep", remote::GREP},
-		{"drop", remote::DROP},
-		{"connect", remote::CONNECT},
-		{"stopserver", remote::STOPSERVER}
-		//help - show help + description
-		//exit - exit the client
-	};
 
-	bool isClientFinished = false;
-	bool isPendingGrepResults = false;
-	bool isInboundChannelValid = true;
+	bool isClientOperational = true;
+	bool isPendingGrepResults = true;
 
-	mutex mxClientSock;
-	shared_ptr<networking::TCPClientSocket> p_clientSock = nullptr;
-	//shared_ptr<thread> p_inboundChannel = nullptr;
+	//shared_ptr<thread> p_communicationChannel = nullptr;
 
-	cout << "Attempting server connection at " << clientIp << endl;
 	try {
-		networking::WindowsSocketActivation wsa;
+		mutex mxInputProcessingQueue;
+		mutex mxCout;
+		queue<string> inputProcessingQueue;
+		thread communicationChannel(
+			clientCommunicationHandler, ref(clientIp), &isClientOperational, &isPendingGrepResults, 
+			&mxInputProcessingQueue, ref(inputProcessingQueue), &mxCout);
 
-		p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
-		cout << "Successfully connected at " << clientIp << "\n\n";
-		const shared_ptr<thread> p_inboundChannel = make_shared<thread>(processInboundChannel, &isInboundChannelValid, &isPendingGrepResults, &mxClientSock, p_clientSock);
-
-		while (!isClientFinished) {
-			string line;
-			do {
+		string line;
+		do {
+			{
+				lock_guard<mutex> lk(mxInputProcessingQueue);
+				if (!inputProcessingQueue.empty()) continue;
 				if (isPendingGrepResults) continue;
+			}
 
+			{
+				lock_guard<mutex> coutlk(mxCout);
 				cout << generateCursor(clientIp);
 				getline(cin, line);
-				remote::CommandEnum commIdent = possibleCommands(cout, commands, line, generateCursor(clientIp).size());
+				lock_guard<mutex> lk(mxInputProcessingQueue);
+				inputProcessingQueue.push(line);
+			}
 
-				shared_ptr<remote::RemoteCommand> p_command = nullptr;
-
-
-				if (commIdent == remote::DROP) {
-					p_command = make_shared<remote::DropCommand>(line);
-					clientIp = "";
-					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
-					cout << "Disconected from '" << p_clientSock->getIpPortString() << "'\n\n";
-					p_clientSock = nullptr;
-				}
-				else if (commIdent == remote::CONNECT) {
-					p_command = make_shared<remote::ConnectCommand>(line);
-					if (p_command->isValid) {
-						clientIp = p_command->arguments;
-						p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
-						isInboundChannelValid = false;
-						p_inboundChannel->join();
-						p_inboundChannel = make_shared<thread>(processInboundChannel, &isClientFinished, &isPendingGrepResults, &mxClientSock, p_clientSock);
-						isInboundChannelValid = true;
-					}
-					else {
-						cout << "'" << p_command->arguments << "' is not a valid IP address\n\n";
-					}
-				}
-				else if (commIdent == remote::STOPSERVER) {
-					p_command = make_shared<remote::StopServerCommand>(line);
-
-					clientIp = "";
-					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
-					cout << "Stopped server at '" << p_clientSock->getIpPortString() << "', disconnecting...\n\n";
-					p_clientSock = nullptr;
-				}
-				else if (commIdent == remote::GREP) {
-					p_command = make_shared<remote::GrepCommand>(line);
-					p_clientSock->sendInfo<remote::CommandEnum>(p_command->_commandType);
-					p_clientSock->sendInfo<std::string>(p_command->arguments);
-
-					isPendingGrepResults = true;
-				}
-
-				//p_clientSock->sendInfo<string>(line);
-			} while (p_clientSock != nullptr);
-		}
-		
+		} while (isClientOperational);
+		communicationChannel.join();
 
 		return EXIT_SUCCESS;
 	}
