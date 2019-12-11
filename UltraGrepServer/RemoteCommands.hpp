@@ -15,6 +15,7 @@ namespace remote {
 		CONNECT,
 		STOPSERVER,
 		GREP,
+		EXIT,
 		
 		RESPONSE,
 		RESPONSETERMINATION
@@ -54,6 +55,9 @@ namespace remote {
 
 	struct DropCommand : public RemoteCommand {
 		DropCommand(std::string userInput) : RemoteCommand(userInput, "drop", DROP) {}
+	};
+	struct ExitCommand : public RemoteCommand {
+		ExitCommand(std::string userInput) : RemoteCommand(userInput, "exit", EXIT) {}
 	};
 	struct StopServerCommand : public RemoteCommand {
 		StopServerCommand(std::string userInput) : RemoteCommand(userInput, "stopserver", STOPSERVER) {}
