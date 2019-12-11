@@ -5,16 +5,17 @@ Date: 2019-12-08
 
 #include <string>
 #include <iostream>
-#include <memory> //smart pointers
-using namespace std;
-#include "../UltraGrepServer/WinSockets.hpp"
+#include <memory>
 #include <map>
 #include <algorithm>
 #include <regex>
-#include "../UltraGrepServer/RemoteCommands.hpp"
 #include <mutex>
 #include <thread>
 #include <queue>
+using namespace std;
+
+#include "../UltraGrepServer/WinSockets.hpp"
+#include "../UltraGrepServer/RemoteCommands.hpp"
 
 remote::CommandEnum possibleCommands(ostream& os, map<string, remote::CommandEnum>& commands, string& userInput, size_t leftSideOffset = 0) {
 
