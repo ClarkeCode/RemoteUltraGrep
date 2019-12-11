@@ -131,6 +131,7 @@ void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool*
 						p_clientSock = nullptr;
 					}
 					else if (commIdent == remote::GREP) {
+						if (p_clientSock == nullptr) continue;
 						p_command = make_shared<remote::GrepCommand>(processLine);
 						p_command->sendCommand(*p_clientSock);
 
