@@ -51,30 +51,6 @@ string generateCursor(string const& ipAddr) {
 	return "ugrepclient> ";
 }
 
-
-void processInboundChannel(bool* isThreadValid, bool* isPendingGrepResults, 
-	mutex* p_mxClientSocket, shared_ptr<networking::TCPClientSocket> p_clientSock) {
-	using namespace remote;
-	while (*isThreadValid) {
-		if (p_clientSock != nullptr && *isPendingGrepResults) {
-			lock_guard<mutex> lk(*p_mxClientSocket);
-			CommandEnum signal = NOACTION;
-			p_clientSock->receiveInfo<CommandEnum>(signal);
-			if (signal == NOACTION) continue;
-
-			if (signal == RESPONSE) {
-				string line;
-				p_clientSock->receiveInfo<string>(line);
-				cout << line;
-			}
-			else if (signal == RESPONSETERMINATION) {
-				*isPendingGrepResults = false;
-				cout << endl;
-			}
-		}
-	}
-}
-
 void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool* isPendingGrepResults,
 	mutex* p_mxInputProcessingQueue, queue<string>& inputProcessingQueue, mutex* p_mxCout) {
 	using namespace remote;
