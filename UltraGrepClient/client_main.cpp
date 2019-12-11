@@ -66,11 +66,11 @@ void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool*
 
 	try {
 		shared_ptr<networking::TCPClientSocket> p_clientSock = nullptr;
-		cout << "Attempting server connection at " << clientIp << endl;
+		std::cout << "Attempting server connection at " << clientIp << endl;
 
 		networking::WindowsSocketActivation wsa;
 		p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
-		cout << "Successfully connected at " << clientIp << "\n\n";
+		std::cout << "Successfully connected at " << clientIp << "\n\n";
 		*isPendingGrepResults = false;
 
 		while (*isProcessingValid) {
@@ -85,11 +85,11 @@ void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool*
 				if (signal == RESPONSE) {
 					string line;
 					p_clientSock->receiveInfo<string>(line);
-					cout << line;
+					std::cout << line;
 				}
 				else if (signal == RESPONSETERMINATION) {
 					*isPendingGrepResults = false;
-					cout << endl;
+					std::cout << endl;
 				}
 			}
 
@@ -100,7 +100,7 @@ void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool*
 					string processLine = inputProcessingQueue.front();
 					inputProcessingQueue.pop();
 
-					remote::CommandEnum commIdent = possibleCommands(cout, commands, processLine, generateCursor(clientIp).size());
+					remote::CommandEnum commIdent = possibleCommands(std::cout, commands, processLine, generateCursor(clientIp).size());
 					shared_ptr<remote::RemoteCommand> p_command = nullptr;
 
 					//Disconnect from the server if the user DROP, EXIT, or CONNECTs without dropping first
@@ -109,7 +109,7 @@ void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool*
 						p_command = make_shared<remote::DropCommand>(processLine);
 						p_command->sendCommand(*p_clientSock);
 						clientIp = "";
-						cout << "Disconected from '" << p_clientSock->getIpPortString() << "'\n\n";
+						std::cout << "Disconected from '" << p_clientSock->getIpPortString() << "'\n\n";
 						p_clientSock = nullptr;
 						if (commIdent == remote::EXIT) { isProcessingValid = false; }
 					}
@@ -122,7 +122,7 @@ void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool*
 							p_clientSock = make_shared<networking::TCPClientSocket>(clientIp, PORT_NUM);
 						}
 						else {
-							cout << "'" << p_command->arguments << "' is not a valid IP address\n\n";
+							std::cout << "'" << p_command->arguments << "' is not a valid IP address\n\n";
 						}
 					}
 					
@@ -132,7 +132,7 @@ void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool*
 						p_command = make_shared<remote::StopServerCommand>(processLine);
 						p_command->sendCommand(*p_clientSock);
 						clientIp = "";
-						cout << "Stopped server at '" << p_clientSock->getIpPortString() << "', disconnecting...\n\n";
+						std::cout << "Stopped server at '" << p_clientSock->getIpPortString() << "', disconnecting...\n\n";
 						p_clientSock = nullptr;
 					}
 
@@ -150,7 +150,7 @@ void clientCommunicationHandler(string& clientIp, bool* isProcessingValid, bool*
 		}
 	}
 	catch (networking::SocketException & ex) {
-		cout << ex.what() << endl;
+		std::cout << ex.what() << endl;
 	}
 	isProcessingValid = false;
 }
@@ -170,7 +170,7 @@ int main(int argc, char* argv[]) {
 	bool isClientOperational = true;
 	bool isPendingGrepResults = true;
 
-	//shared_ptr<thread> p_communicationChannel = nullptr;
+	std::cout << "Remote UltraGrep by Robert Clarke and Evan Burgess" << endl;
 
 	try {
 		mutex mxInputProcessingQueue;
@@ -192,18 +192,18 @@ int main(int argc, char* argv[]) {
 			//Take user input and add it to the processing queue
 			{
 				lock_guard<mutex> coutlk(mxCout);
-				cout << generateCursor(clientIp);
+				std::cout << generateCursor(clientIp);
 				getline(cin, line);
 				lock_guard<mutex> lk(mxInputProcessingQueue);
 				inputProcessingQueue.push(line);
 			}
 		} while (isClientOperational);
 
-		cout << "Closing client" << endl;
+		std::cout << "Closing client" << endl;
 		communicationChannel.join();
 		return EXIT_SUCCESS;
 	}
 	catch (networking::SocketException & ex) {
-		cout << ex.what() << endl;
+		std::cout << ex.what() << endl;
 	}
 }

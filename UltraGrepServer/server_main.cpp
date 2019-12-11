@@ -120,6 +120,9 @@ int main(int argc, char* argv[]) {
 		return EXIT_SUCCESS;
 	}
 	catch (networking::SocketException & ex) {
+		isOutboundChannelValid = false;
+		if (p_outboundChannel != nullptr)
+			p_outboundChannel->join();
 		cout << ex.what() << endl;
 		return EXIT_FAILURE;
 	}
